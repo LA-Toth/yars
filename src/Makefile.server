@@ -6,7 +6,7 @@ LDFLAGS=-lpthread
 BINARY=srv
 BINDIR=../bin/
 all: $(BINARY)
-	@cp -a $(BINARY) $(BINDIR)
+	@mv $(BINARY) $(BINDIR)/yars-$(BINARY)
 
 doc:
 	@doxygen ../conf/doxygen.conf 2>/dev/null >&2
