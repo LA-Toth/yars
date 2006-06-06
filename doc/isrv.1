@@ -1,0 +1,72 @@
+.TH SRV 1
+. SH NAME
+srv \- file restore server
+.SH SYNOPSIS
+.B clnt
+[OPTION]...
+.SH DESCRIPTION
+File restoration server. File size can be greater than 4GB. Settings are
+stored in a
+.I config\-file
+which contains port numbers, broadcast address, image names \- see at
+.B EXAMPLES.
+.PP
+Communication between the client and the server is via tcp to get information
+of available images and to request a part of the selected image. Sending the
+image file uses udp broadcast datagrams. It is faster and can receive any
+number of clients simultaneously.
+.SH OPTIONS
+Parameters have short and long forms.
+.TP
+\fB\-f\fR, \fB\-\-config\-file\fR=\fIFILE\fR
+Configuration file to use \- default is /etc/vissza/server.conf
+.SH FILES
+\fB/etc/vissza/server.conf\fR
+.SH EXAMPLES
+There are examples for the configuration file, with detailed meaning. Each
+line  must have this syntax:
+.I name
+=
+.I value,
+where the equal sign (=) is optional.
+.TP
+broadcast = 10.0.1.255
+This line specifies the actual network's broadcast address. It is recommended to use
+internal (class A,B or C) IP address for the network during file restoration.
+.TP
+port 8766
+This server-side port is for sending requests to get any part of the image.
+Used protocol is TCP.
+.TP
+info\-port 8767
+This server\-side port number is used to get the names of available backup images and their
+lenght. Used protocol is TCP.
+.TP
+broadcast\-port = 8769
+This port is client-side: broadcast datagrams' target port, the client use it
+for listening. Because UDP datagrams cannot be larger than 1500 bytes, now only 1024 bytes
+are in these broadcast packets. Used protocol is UDP.
+.TP
+delay-count = NUMBER
+After every NUMBERth udp packets the server waits one microseconds. It is
+necessary because sometimes the network is not good enough to avoid it. For
+example switches,  network cards cannot handle too many packet simultaneously.
+.TP
+names = LIST
+LIST contains all available image names. Images that are not listed are
+handled as invalid names also names are not sent to client via info\-port.
+Invalid names are skipped (non\-readable or non\-exist files, etc)
+.TP
+IMAGE\-NAME = FILE
+All names previosly listed are reserved. IMAGE\-NAME can be any other. Maximum
+maximum length is 3 KByte. FILE can be the path/filename of any file.
+.SH AUTHOR
+Written by László Attila Tóth <panther@elte.hu>.
+.SH "REPORTING BUGS"
+Report bugs to the author.
+.SH COPYRIGHT
+Copyright \(co 2004 László Attila Tóth.
+.PP
+.br
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
