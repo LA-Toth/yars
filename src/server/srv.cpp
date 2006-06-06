@@ -11,12 +11,11 @@ void backup_thread();
 
 bool g_running = true;
 const char*const VCFG="/etc/vissza/server.conf";
+std::string cfgfile = VCFG;
 char * argv0;
 
 int main(int argc, char * argv[])
 {
-    
-    std::string cfgfile = VCFG;
     signal(SIGINT, SIG_IGN);
 
     argv0 = argv[0];

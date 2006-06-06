@@ -1,0 +1,16 @@
+YaRS (Yet Another Restoring System)
+================================
+
+A distributed system restorer. Main server can be anywhere on the Internet,
+the relay server ("iserver", "inter-server")  must be in the same subnet as
+the clients.
+
+License
+=======
+
+GNU GPL Version 2
+
+Usage
+=====
+
+See the manual pages in the doc subdirectory

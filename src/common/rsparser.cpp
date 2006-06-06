@@ -1,4 +1,4 @@
-/*  config_thread.cpp - Configuration updater
+/*  rsparser.cpp - HTTP-like header parser
 
     Copyright (C) 2006 Laszlo Attila Toth
 
@@ -16,23 +16,10 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 
+#include "rsparser.hh"
 
-#include "config.hh"
+class RSParserHelper;
 
-void parseConfig(const std::string& file);
-
-extern bool g_running;
-extern std::string cfgfile;
-
-void congig_thread()
-{
-    while (g_running) {
-	sleep(1800);
-	parseConfig(cfgfile);
-		     
-    }
-
-}
 
 /** EMACS **
  * Local variables:

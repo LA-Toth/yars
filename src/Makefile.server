@@ -31,6 +31,7 @@ CXX_SOURCES += common/types/imageinfo.cpp
 CXX_SOURCES += common/types/semaphore.cpp
 CXX_SOURCES += server/srv.cpp
 CXX_SOURCES += server/config.cpp
+CXX_SOURCES += server/config_thread.cpp
 
 C_SOURCES =
 
