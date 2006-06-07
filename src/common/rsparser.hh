@@ -27,22 +27,24 @@ class RSParserHelper;
 
 class RSParser {
     RSParserHelper * helper;
+    bool isRequest;
+    bool firstLine;
     bool error;
     std::string name;
     int version; /// for example:  0x0103 represents 1.3
     int status;
-    int statusText;
+    std::string statusText;
     std::map<std::string, std::string> lines;
 public:
     RSParser(bool request);
     ~RSParser();
     /// must be called after each select (if FD_ISSET can be true)
-    bool headerParser(int fd, fd_set *readfds, fd_set *writefds, fd_set *exceptfds);
+    int parseHeader(int fd, fd_set *readfds, fd_set *excepfds, bool searchEndOfHeader = false);
     std::string hasError() const;
 
     std::string getHeader(const std::string& name) const; 
-    int  getVersion() const {return version; } /// same as in HTTP (HTTP version)
-    std::string getStatus() const { return status ; } /// same as in HTTP
+    int getVersion() const {return version; } /// same as in HTTP (HTTP version)
+    int getStatus() const { return status ; } /// same as in HTTP
     std::string getStatusText() const {return statusText; }/// same as in HTTP
     std::string getName() const { return name;} /// image name, in HTTP: requested URI
 };

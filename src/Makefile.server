@@ -26,6 +26,7 @@ CXX_SOURCES  =
 CXX_SOURCES += common/checksums.cpp
 CXX_SOURCES += common/confparser.cpp
 CXX_SOURCES += common/rwlock.cpp
+CXX_SOURCES += common/rsparser.cpp
 CXX_SOURCES += common/types/checksuminfo.cpp
 CXX_SOURCES += common/types/imageinfo.cpp
 CXX_SOURCES += common/types/semaphore.cpp
