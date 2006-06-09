@@ -21,6 +21,7 @@
 #include <errno.h>
 #include "rsparser.hh"
 
+#include <iostream>
 
 class RSParserHelper
 {
@@ -28,53 +29,73 @@ class RSParserHelper
     int posEOL;  //< position of EOL 
     bool normalEOL; //< is "\r\n" or simply "\n"
     int offset;  //< position of new data
+    int offset_eol; //< position _after_ eol can appear
 public:
-    char buffer[4096];
+    char buffer[4097];
+    std::string tempString;
     
-    RSParserHelper() : hasEOL(false), posEOL(0), normalEOL(false), offset(0) {
-	memset(buffer, 0, 4096);
+    RSParserHelper() : hasEOL(false), posEOL(0), normalEOL(false), offset(0), offset_eol(0) {
+	memset(buffer, 0, 4097);
     }
     inline int getOffset() const { return offset; }
     inline int maxReadableLength() const { return 4096 - offset; }
 
     void updateLength(int readLength) {
 	if (!hasEOL) {
-	    for (int i=0; i!= readLength; ++i) {
-		if (buffer[offset + i] == '\r') {
+	    for (int i=offset_eol; i <  offset + readLength; ++i) {
+		if (buffer[i] == '\r') {
+		    std::cout << "t1" << std::endl;
 		    // next must be '\n'
-		    if (buffer[offset + ++i ] == '\n') {
+		    if (buffer[ ++i ] == '\n') {
+			std::cout << "t2" << std::endl;
 			hasEOL = true;
 			normalEOL = true;
 			posEOL = i-1;
 			break;
 		    } // else: nothing: bug!!
-		} else if (buffer[offset + i ] == '\n') {
-			hasEOL = true;
-			normalEOL = false;
-			posEOL = i;
+		} else if (buffer[ i ] == '\n') {
+		    std::cout << "t4" << std::endl;
+		    hasEOL = true;
+		    normalEOL = false;
+		    posEOL = i;
 		} 		
 	    }
 	}
 	offset += readLength;
+	if (!hasEOL) {
+	    offset_eol += readLength;
+	}
     }
 
     inline int getEOL() { return hasEOL ? posEOL : -1 ; }
 
     inline void removeLine() { removeLine(false); }
     inline void forcedRemoveLine() { removeLine(true); }
+
+    void printDebug() {
+	std::cout << "\noffset: " << offset 
+		  << "\nposEOL: " << posEOL 
+		  << "\nnormalEOL: " << normalEOL
+		  << "\nhasEOL: " << hasEOL
+		  << "\nbuffer: " << buffer
+		  << "\nEND."  << std::endl;
+	    
+	    
+	    
+    }
 private:    
     void removeLine(bool forced) {
-	if (!hasEOL && !forced) return;
+	if (!hasEOL && !forced || !offset) return;
 	int len = posEOL + ( normalEOL ? 2 : 1);
 	memmove(buffer, buffer + len,  4096 - len);
 	offset -= len;
+	offset_eol -= len;
 	hasEOL = false;
+	updateLength(0);
     }    
 };
 
-RSParser::RSParser(bool request) : helper(new  RSParserHelper()), isRequest(request),
-				   firstLine(true), error(false), 
-				   version (0x0100), status(0)
+RSParser::RSParser(bool request) : helper(new  RSParserHelper())
 {
 }
 
@@ -84,9 +105,9 @@ RSParser::~RSParser()
 	delete helper;
 }
 
-int RSParser::parseHeader(int fd, fd_set *readfds, fd_set* exceptfds, bool searchEndOfHeader)
+int RSParser::parseHeader(int& fd, fd_set *readfds, fd_set* exceptfds)
 {
-    int retval = 0;
+    int retval = 1;
     if (FD_ISSET(fd, exceptfds)) {
 	char c;
 	errno = 0;
@@ -109,74 +130,35 @@ int RSParser::parseHeader(int fd, fd_set *readfds, fd_set* exceptfds, bool searc
 	    return -1;
 	}  else {
 	    helper->updateLength(r);
-
-	    if (searchEndOfHeader) {
-		while (helper->getOffset() > 0) {
-		    if (helper->getEOL() == 0) return 0;
-		    helper->removeLine();
-		}
-		return 0;
-	    }
-
-	    while(helper->getOffset() && ((r = helper->getEOL()) >= 0)) {
-		if (firstLine) {
-		    if ((!isRequest && memcmp(helper->buffer, "RS/1.0 ", 7)) ||
-			(isRequest &&  memcmp(helper->buffer, "GET ", 4))) {
-			// error!!! drop the whole header
-			retval = 2;
-		    } else {
-			if (isRequest) {
-			    helper->buffer[helper->getEOL()] = 0;
-			    name = helper->buffer + 4;
-			    std::string::const_iterator p1=name.begin(),p2;
-			    while(p1 != name.end() && *p1!=' ')++p1;
-			    if (p1 == name.end()) {
-				retval = 2;
-			    } else {
-				std::string n((p2=name.begin()), p1);
-				name = n;
-			    }				
-			} else {
-			    helper->buffer[helper->getEOL()] = 0;
-			    name = helper->buffer + 7; 
-			    std::string::iterator p1=name.begin(),p2;
-			    while(p1 != name.end() && *p1!=' ')++p1;
-			    std::string n(name.begin(), p1);
-			    if ((status = atoi(n.c_str())) == 0) {
-				retval = 2;
-			    } else {
-				std::string n(--p1,name.end());
-				statusText = n;
-			    }
-			}		
-		    }
-		} else if(!retval)  {// no error
-		    if (helper->getEOL() == 0) {
-			helper->removeLine();					
-			return 1;
-		    }
-		    helper->buffer[helper->getEOL()] = 0;
-		    std::string buf = helper->buffer;
-		    std::string::iterator p1=buf.begin(),p2;
-		    while(p1 != buf.end() && *p1!=':')++p1;
-		    p2=p1;
-		    if (p2 == buf.end() || *++p1 != ' ') {
-			retval = 2;
-		    } else {
-			std::string name(buf.begin(),p2);
-			++p1;
-			std::string value(p1,buf.end());
-			std::map<std::string,std::string>::const_iterator p = lines.find(name); // multiple entries are invalid
-			if (p != lines.end()) {
-			    retval = 2;
-			    lines[name] = value;
-			}
-		    }		    
-		}
+	    helper->printDebug();
+	    std::cout << " r " << r << std::endl;
+	    
+	    while(helper->getOffset() && ((r = helper->getEOL()) > 0)) {
+	        helper->buffer[ helper->getEOL() ] = 0;
+		helper->tempString += helper->buffer;
+		lines.push_back( helper->tempString );
+		std::cout << "str: " << helper->tempString << ":X" << std::endl;
+		helper->tempString.clear();
 		helper->removeLine();
+		helper->printDebug();
 	    }
-	} 
+	    if (helper->getOffset() == 0) {
+		if (helper->getEOL() == 0) {
+		    helper->forcedRemoveLine();
+		    retval = 0;
+		} else if(helper->getEOL() > 0) {
+		    helper->buffer[ helper->getOffset() ] = 0;
+		    helper->tempString += helper->buffer;
+		    helper->forcedRemoveLine();
+		    retval = 1;
+		}
+	    } else if (helper->getEOL() == 0) {
+		helper->forcedRemoveLine();
+		retval = 0;
+	    }
+	}
     }
+    helper->printDebug();
     return retval;
 }
 
