@@ -21,8 +21,6 @@
 #include <errno.h>
 #include "rsparser.hh"
 
-#include <iostream>
-
 class RSParserHelper
 {
     bool hasEOL; //< has EOL char(s)
@@ -44,17 +42,14 @@ public:
 	if (!hasEOL) {
 	    for (int i=offset_eol; i <  offset + readLength; ++i) {
 		if (buffer[i] == '\r') {
-		    std::cout << "t1" << std::endl;
 		    // next must be '\n'
 		    if (buffer[ ++i ] == '\n') {
-			std::cout << "t2" << std::endl;
 			hasEOL = true;
 			normalEOL = true;
 			posEOL = i-1;
 			break;
 		    } // else: nothing: bug!!
-		} else if (buffer[ i ] == '\n') {
-		    std::cout << "t4" << std::endl;
+		} else if (buffer[ i ] == '\n') { // bugous, doesn't work
 		    hasEOL = true;
 		    normalEOL = false;
 		    posEOL = i;
@@ -72,17 +67,6 @@ public:
     inline void removeLine() { removeLine(false); }
     inline void forcedRemoveLine() { removeLine(true); }
 
-    void printDebug() {
-	std::cout << "\noffset: " << offset 
-		  << "\nposEOL: " << posEOL 
-		  << "\nnormalEOL: " << normalEOL
-		  << "\nhasEOL: " << hasEOL
-		  << "\nbuffer: " << buffer
-		  << "\nEND."  << std::endl;
-	    
-	    
-	    
-    }
 private:    
     void removeLine(bool forced) {
 	if (!hasEOL && !forced || !offset) return;
@@ -130,17 +114,13 @@ int RSParser::parseHeader(int& fd, fd_set *readfds, fd_set* exceptfds)
 	    return -1;
 	}  else {
 	    helper->updateLength(r);
-	    helper->printDebug();
-	    std::cout << " r " << r << std::endl;
 	    
 	    while(helper->getOffset() && ((r = helper->getEOL()) > 0)) {
 	        helper->buffer[ helper->getEOL() ] = 0;
 		helper->tempString += helper->buffer;
 		lines.push_back( helper->tempString );
-		std::cout << "str: " << helper->tempString << ":X" << std::endl;
 		helper->tempString.clear();
 		helper->removeLine();
-		helper->printDebug();
 	    }
 	    if (helper->getOffset() == 0) {
 		if (helper->getEOL() == 0) {
@@ -158,7 +138,6 @@ int RSParser::parseHeader(int& fd, fd_set *readfds, fd_set* exceptfds)
 	    }
 	}
     }
-    helper->printDebug();
     return retval;
 }
 
