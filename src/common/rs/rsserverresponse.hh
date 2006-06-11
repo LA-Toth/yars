@@ -1,4 +1,4 @@
-/*  rsparser.hh - HTTP-like header parser
+/*  rsserverresponse.hh - response of the server
 
     Copyright (C) 2006 Laszlo Attila Toth
 
@@ -16,34 +16,26 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 
-#ifndef RSPARSER__HH
-#define RSPARSER__HH
+#ifndef RSSERVERRESPONSE__HH
+#define RSSERVERRESPONSE__HH
 
-#include <string>
-#include <vector>
+#include "rs/header.hh"
 
-
-namespace RSParser {
+namespace RS {
     
-    class Parser {
-	/// contains the buffer, etc.
-	class Helper;
+    class ServerResponse: Header {
+	std::string version;
+	std::string status;
+	std::string statusText;
     public:
-	typedef std::vector<std::string> strList;
-    private:
-	Helper * helper;
-	strList lines;
-    public:
-	Parser();
-	~Parser();
-	/// must be called after each select (if FD_ISSET can be true)
-	int parseHeader(int& fd, fd_set *readfds, fd_set *excepfds);
-	
-	const strList& getLines() const { return lines;} 
+	ServerResponse();
+	void setVersion(const std::string& version);
+	void setStatus(const std::string& status);
+	void setStatusText(const std::string& statusText);
     };
 }
-#endif
 
+#endif
 
 /** EMACS **
  * Local variables:

@@ -1,4 +1,4 @@
-/*  rsparser.hh - HTTP-like header parser
+/*  rsclientrequest.cpp - request of the client
 
     Copyright (C) 2006 Laszlo Attila Toth
 
@@ -16,33 +16,22 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 
-#ifndef RSPARSER__HH
-#define RSPARSER__HH
+#include "rsclientrequest.hh"
 
-#include <string>
-#include <vector>
-
-
-namespace RSParser {
-    
-    class Parser {
-	/// contains the buffer, etc.
-	class Helper;
-    public:
-	typedef std::vector<std::string> strList;
-    private:
-	Helper * helper;
-	strList lines;
-    public:
-	Parser();
-	~Parser();
-	/// must be called after each select (if FD_ISSET can be true)
-	int parseHeader(int& fd, fd_set *readfds, fd_set *excepfds);
-	
-	const strList& getLines() const { return lines;} 
-    };
+void RS::ClientRequest::ClientRequest() : Header(), version("1.0") {
 }
-#endif
+
+void RS::ClientRequest::setVersion(const std::string& version)
+{
+    this->version = version;
+    this->firstLine ="GET " + this->imageName +  " RS/" + this->version;
+}
+
+void RS::ClientRequest::setImageName(const std::string& imageName)
+{
+    this->imageName= imageName;
+    this->firstLine ="GET " + this->imageName +  " RS/" + this->version;
+}
 
 
 /** EMACS **

@@ -1,4 +1,4 @@
-/*  rsparser.hh - HTTP-like header parser
+/*  rsserverresponse.cpp - Response of the server
 
     Copyright (C) 2006 Laszlo Attila Toth
 
@@ -16,34 +16,28 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 
-#ifndef RSPARSER__HH
-#define RSPARSER__HH
+#include "rs/rsserverresponse.hh"
 
-#include <string>
-#include <vector>
-
-
-namespace RSParser {
-    
-    class Parser {
-	/// contains the buffer, etc.
-	class Helper;
-    public:
-	typedef std::vector<std::string> strList;
-    private:
-	Helper * helper;
-	strList lines;
-    public:
-	Parser();
-	~Parser();
-	/// must be called after each select (if FD_ISSET can be true)
-	int parseHeader(int& fd, fd_set *readfds, fd_set *excepfds);
-	
-	const strList& getLines() const { return lines;} 
-    };
+void RS::ServerResponse::ServerResponse() : Header(), version("1.0") {
 }
-#endif
 
+void RS::ServerResponse::setVersion(const std::string& version)
+{
+    this->version = version;
+    this->firstLine = "RS/" + this->version + " " + this->status + " " + this->statusText;
+}
+
+void RS::ServerResponse::setStatus(const std::string& status)
+{
+    this->status = status;
+    this->firstLine = "RS/" + this->version + " " + this->status + " " + this->statusText;
+}
+
+void RS::ServerResponse::setStatus(const std::string& statusText)
+{
+    this->statusText = statusText;
+    this->firstLine = "RS/" + this->version + " " + this->status + " " + this->statusText;
+}
 
 /** EMACS **
  * Local variables:

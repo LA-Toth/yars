@@ -19,9 +19,9 @@
 #include <sys/select.h>
 #include <sys/socket.h>
 #include <errno.h>
-#include "rsparser.hh"
+#include "rs/rsparser.hh"
 
-class RSParserHelper
+class RSParser::Parser::Helper
 {
     bool hasEOL; //< has EOL char(s)
     int posEOL;  //< position of EOL 
@@ -32,7 +32,7 @@ public:
     char buffer[4097];
     std::string tempString;
     
-    RSParserHelper() : hasEOL(false), posEOL(0), normalEOL(false), offset(0), offset_eol(0) {
+    Helper() : hasEOL(false), posEOL(0), normalEOL(false), offset(0), offset_eol(0) {
 	memset(buffer, 0, 4097);
     }
     inline int getOffset() const { return offset; }
@@ -47,12 +47,15 @@ public:
 			hasEOL = true;
 			normalEOL = true;
 			posEOL = i-1;
+			offset_eol = posEOL + 2;
 			break;
 		    } // else: nothing: bug!!
 		} else if (buffer[ i ] == '\n') { // bugous, doesn't work
 		    hasEOL = true;
 		    normalEOL = false;
 		    posEOL = i;
+		    offset_eol = posEOL + 1;
+		    break;
 		} 		
 	    }
 	}
@@ -79,17 +82,17 @@ private:
     }    
 };
 
-RSParser::RSParser(bool request) : helper(new  RSParserHelper())
+RSParser::Parser::Parser() : helper(new Helper())
 {
 }
 
-RSParser::~RSParser()
+RSParser::Parser::~Parser()
 {
     if (helper)
 	delete helper;
 }
 
-int RSParser::parseHeader(int& fd, fd_set *readfds, fd_set* exceptfds)
+int RSParser::Parser::parseHeader(int& fd, fd_set *readfds, fd_set* exceptfds)
 {
     int retval = 1;
     if (FD_ISSET(fd, exceptfds)) {
@@ -129,12 +132,18 @@ int RSParser::parseHeader(int& fd, fd_set *readfds, fd_set* exceptfds)
 		} else if(helper->getEOL() > 0) {
 		    helper->buffer[ helper->getOffset() ] = 0;
 		    helper->tempString += helper->buffer;
-		    helper->forcedRemoveLine();
+		    helper->removeLine();
 		    retval = 1;
 		}
-	    } else if (helper->getEOL() == 0) {
-		helper->forcedRemoveLine();
-		retval = 0;
+	    } else {
+		if (helper->getEOL() == 0) {
+		    helper->forcedRemoveLine();
+		    retval = 0;
+		} else if (helper->getEOL() == -1) {
+		    helper->buffer[ helper->getOffset() ] == 0;
+		    helper->tempString += helper->buffer;		    
+		    helper->forcedRemoveLine();
+		}
 	    }
 	}
     }

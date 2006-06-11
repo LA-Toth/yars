@@ -1,4 +1,4 @@
-/*  rsparser.hh - HTTP-like header parser
+/*  helpers.hh - Small functions
 
     Copyright (C) 2006 Laszlo Attila Toth
 
@@ -16,34 +16,21 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 
-#ifndef RSPARSER__HH
-#define RSPARSER__HH
+#ifndef HELPERS__HH
+#define HELPERS__HH
 
 #include <string>
 #include <vector>
 
-
-namespace RSParser {
-    
-    class Parser {
-	/// contains the buffer, etc.
-	class Helper;
-    public:
-	typedef std::vector<std::string> strList;
-    private:
-	Helper * helper;
-	strList lines;
-    public:
-	Parser();
-	~Parser();
-	/// must be called after each select (if FD_ISSET can be true)
-	int parseHeader(int& fd, fd_set *readfds, fd_set *excepfds);
-	
-	const strList& getLines() const { return lines;} 
-    };
+namespace Helpers {
+    void split(const std::string& buf,std::vector<std::string>& vec);
+    void splitBy(const char delimiter, const std::string& buf,std::vector<std::string>& vec);
+    void splitByEx(const char delimiter, const std::string& buf,std::vector<std::string>& vec);
+    std::string trimEx(const std::string& s);
+    std::string trimLeft(const std::string& s);
 }
-#endif
 
+#endif
 
 /** EMACS **
  * Local variables:

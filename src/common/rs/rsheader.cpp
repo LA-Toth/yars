@@ -1,4 +1,4 @@
-/*  rsparser.hh - HTTP-like header parser
+/*  rsheader.cpp - generating HTTP-like header 
 
     Copyright (C) 2006 Laszlo Attila Toth
 
@@ -16,34 +16,32 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 
-#ifndef RSPARSER__HH
-#define RSPARSER__HH
-
 #include <string>
-#include <vector>
+#include <map>
 
 
-namespace RSParser {
-    
-    class Parser {
-	/// contains the buffer, etc.
-	class Helper;
-    public:
-	typedef std::vector<std::string> strList;
-    private:
-	Helper * helper;
-	strList lines;
-    public:
-	Parser();
-	~Parser();
-	/// must be called after each select (if FD_ISSET can be true)
-	int parseHeader(int& fd, fd_set *readfds, fd_set *excepfds);
-	
-	const strList& getLines() const { return lines;} 
-    };
+void RS::Header::setHeader(const std::string& name, const std::string& value)
+{
+    headers[name] = value;    
 }
-#endif
-
+const std::string getLines() const
+{
+    std::string retVal = firstLine;
+    if (firstLine.size()) 
+	retVal += "\r\n";
+    std::map<std::string, std::string>::const_iterator p = headers.begin();
+    for (;p !=  headers.end(); ++p)
+	retVal += p->first + ": " + p->second + "\r\n";
+    return retVal + "\r\n";
+}
+std::string getHeader(const std::string& name, const std::string& defaultValue)
+{
+    std::map<std::string, std::string>::const_iterator p = headers.find(name);
+    if (p != headers.end())
+	return p->second;
+    else
+	return defaultValue;
+}
 
 /** EMACS **
  * Local variables:

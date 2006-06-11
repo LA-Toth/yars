@@ -1,4 +1,4 @@
-/*  rsparser.hh - HTTP-like header parser
+/*  rsserverrequest.hh - parsing the request (server side)
 
     Copyright (C) 2006 Laszlo Attila Toth
 
@@ -16,30 +16,31 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 
-#ifndef RSPARSER__HH
-#define RSPARSER__HH
+#ifndef RSSERVERREQUEST__HH
+#define RSSERVERREQUEST__HH
 
-#include <string>
-#include <vector>
+#include "rs/rsparser.hh"
+#include <map>
 
-
-namespace RSParser {
-    
-    class Parser {
-	/// contains the buffer, etc.
-	class Helper;
+namespace RS
+{
+    class ServerRequest {
+	void parseHeader(const std::vector<std::string>& lines);
+	int error;
+	std::map<std::string, std::string> headers;
+	std::string method;
+	std::string url;
+	std::string version;
     public:
-	typedef std::vector<std::string> strList;
-    private:
-	Helper * helper;
-	strList lines;
-    public:
-	Parser();
-	~Parser();
-	/// must be called after each select (if FD_ISSET can be true)
-	int parseHeader(int& fd, fd_set *readfds, fd_set *excepfds);
-	
-	const strList& getLines() const { return lines;} 
+	ServerRequest(const RSParser::Parser& parser);
+	ServerRequest(const RSParser::Parser::strList& lines);
+	std::string getMethod() const { return method; }
+	std::string getURL() const { return url; }
+	std::string getVersion() const {return version; }
+	std::string getHeader(const std::string& name) {return getHeader(name, ""); }
+	std::string getHeader(const std::string& name, const std::string& defaultValue);
+	int getError() { return error; }
+	bool hasError() { return error !=  -1; }
     };
 }
 #endif
