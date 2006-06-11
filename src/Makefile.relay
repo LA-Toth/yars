@@ -1,11 +1,11 @@
 .PHONY: all doc run make clean
 
-CXX_FLAGS=-Wall -Werror -O2 -g0 -fomit-frame-pointer -funroll-loops -DSND_BUFSIZE=1024 -I. -Icommon  -Wstack-protector  -fno-stack-protector
-C_FLAGS=-Wall -Werror -O2 -g0 -fomit-frame-pointer -funroll-loops -DSND_BUFSIZE=1024 -I. -Icommon  -Wstack-protector -fno-stack-protector
+CXX_FLAGS=-Wall -Werror -O2 -g0 -fomit-frame-pointer -funroll-loops -DSND_BUFSIZE=1024 -I. -Icommon  -Wstack-protector
+C_FLAGS=-Wall -Werror -O2 -g0 -fomit-frame-pointer -funroll-loops -DSND_BUFSIZE=1024 -I. -Icommon  -Wstack-protector
 LDFLAGS=-lpthread
-BINARY=srv
-BINARY_FINAL=yars-server
-CONFIG_FILE=server.conf
+BINARY=Relay
+BINARY_FINAL=yars-relay
+CONFIG_FILE=relay-server.conf
 BINDIR=../bin/
 all: $(BINARY)
 	@mv $(BINARY) $(BINDIR)/$(BINARY_FINAL)
@@ -23,19 +23,12 @@ make:
 CXX_SOURCES  = 
 CXX_SOURCES += common/checksums.cpp
 CXX_SOURCES += common/confparser.cpp
-CXX_SOURCES += common/helpers.cpp
-CXX_SOURCES += common/rwlock.cpp
 CXX_SOURCES += common/rs/rsheader.cpp
 CXX_SOURCES += common/rs/rsparser.cpp
-CXX_SOURCES += common/rs/rsserverrequest.cpp
-CXX_SOURCES += common/rs/rsserverresponse.cpp
 CXX_SOURCES += common/types/checksuminfo.cpp
 CXX_SOURCES += common/types/imageinfo.cpp
 CXX_SOURCES += common/types/semaphore.cpp
-CXX_SOURCES += server/config.cpp
-CXX_SOURCES += server/config_thread.cpp
-CXX_SOURCES += server/server_thread.cpp
-CXX_SOURCES += server/main.cpp
+CXX_SOURCES += relay/main.cpp
 
 C_SOURCES =
 

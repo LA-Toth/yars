@@ -1,4 +1,4 @@
-/*  config_thread.cpp - Configuration updater
+/*  server_thread.cpp - Communication with the relay server
 
     Copyright (C) 2006 Laszlo Attila Toth
 
@@ -19,16 +19,11 @@
 
 #include "config.hh"
 
-void parseConfig(const std::string& file);
-
 extern bool g_running;
-extern std::string cfgfile;
 
-void config_thread(void*)
+void server_thread(void*)
 {
     while (g_running) {
-	sleep(1800);
-	parseConfig(cfgfile);
 		     
     }
 
