@@ -19,7 +19,7 @@
 #ifndef RSCLIENTREQUEST__HH
 #define RSCLIENTREQUEST__HH
 
-#include "rs/header.hh"
+#include "rs/rsheader.hh"
 
 namespace RS {
     

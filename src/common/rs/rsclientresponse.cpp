@@ -1,4 +1,4 @@
-/*  rsserverrequest.hh - parsing the request (server side)
+/*  rsclientresponse.hh - parsing the request (client side)
 
     Copyright (C) 2006 Laszlo Attila Toth
 
@@ -17,19 +17,19 @@
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 
 
-#include "rs/rsserverrequest.hh"
+#include "rs/rsclientresponse.hh"
 #include "helpers.hh"
 
 
-RS::ServerRequest::ServerRequest(const RSParser::Parser& parser) :  error(-1)
+RS::ClientResponse::ClientResponse(const RSParser::Parser& parser) :  error(-1)
 {
     parseHeader(parser.getLines());
 }
-RS::ServerRequest::ServerRequest(const RSParser::Parser::strList& lines) :  error(-1)
+RS::ClientResponse::ClientResponse(const RSParser::Parser::strList& lines) :  error(-1)
 {
     parseHeader(lines);
 }
-void RS::ServerRequest::parseHeader(const RSParser::Parser::strList& lines)
+void RS::ClientResponse::parseHeader(const RSParser::Parser::strList& lines)
 {
     using namespace Helpers;
     
@@ -38,18 +38,24 @@ void RS::ServerRequest::parseHeader(const RSParser::Parser::strList& lines)
 	return;
     }
     std::vector<std::string> strList;
-    split(lines[0], strList);
+    splitByEx(' ', lines[0], strList);
     
     // searching for errors
-    if (strList.size() != 3 ||
-	strList[0] != "GET" || strList[2] != "RS/1.0" ||
-	strList[0].size() == 0) {
+    if (strList.size() != 2 ||
+	strList[0] != "RS/1.0") {
 	error = 0;
 	return;
     }
-    method = strList[0];
-    url = strList[1];
-    version.assign(strList[2].begin() + 3, strList[2].end());
+    version.assign(strList[0].begin() + 3, strList[0].end());
+    statusText = strList[1];
+    splitByEx(' ', statusText, strList);
+    if (strList.size() != 2) {
+	error = 0;
+	return;
+    }
+    status = strList[0];
+    statusText = strList[1];
+    
     for (size_t i = 1; i!= lines.size(); ++i) {
 	splitByEx(':', lines[i], strList);
 
@@ -70,8 +76,8 @@ void RS::ServerRequest::parseHeader(const RSParser::Parser::strList& lines)
     }
 }
 
-std::string RS::ServerRequest::getHeader(const std::string& name, 
-					 const std::string& defaultValue)
+std::string RS::ClientResponse::getHeader(const std::string& name, 
+					 const std::string& defaultValue) const
 {
     std::map<std::string, std::string>::const_iterator p = headers.find(name);
     if (p != headers.end())

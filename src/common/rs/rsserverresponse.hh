@@ -19,7 +19,7 @@
 #ifndef RSSERVERRESPONSE__HH
 #define RSSERVERRESPONSE__HH
 
-#include "rs/header.hh"
+#include "rs/rsheader.hh"
 
 namespace RS {
     

@@ -1,4 +1,4 @@
-/*  rsserverrequest.hh - parsing the request (server side)
+/*  rsclientresponse.hh - parsing the response (client side)
 
     Copyright (C) 2006 Laszlo Attila Toth
 
@@ -24,23 +24,23 @@
 
 namespace RS
 {
-    class ServerRequest {
+    class ClientResponse {
 	void parseHeader(const std::vector<std::string>& lines);
 	int error;
 	std::map<std::string, std::string> headers;
-	std::string method;
-	std::string url;
+	std::string status;
+	std::string statusText;
 	std::string version;
     public:
-	ServerRequest(const RSParser::Parser& parser);
-	ServerRequest(const RSParser::Parser::strList& lines);
-	std::string getMethod() const { return method; }
-	std::string getURL() const { return url; }
+	ClientResponse(const RSParser::Parser& parser);
+	ClientResponse(const RSParser::Parser::strList& lines);
+	std::string getStatus() const { return status; }
+	std::string getStatusText() const { return statusText; }
 	std::string getVersion() const {return version; }
-	std::string getHeader(const std::string& name) {return getHeader(name, ""); }
-	std::string getHeader(const std::string& name, const std::string& defaultValue);
-	int getError() { return error; }
-	bool hasError() { return error !=  -1; }
+	std::string getHeader(const std::string& name) const {return getHeader(name, ""); }
+	std::string getHeader(const std::string& name, const std::string& defaultValue) const;
+	int getError() const { return error; }
+	bool hasError() const { return error !=  -1; }
     };
 }
 #endif

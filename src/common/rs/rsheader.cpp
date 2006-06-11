@@ -16,15 +16,13 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 
-#include <string>
-#include <map>
-
+#include "rs/rsheader.hh"
 
 void RS::Header::setHeader(const std::string& name, const std::string& value)
 {
     headers[name] = value;    
 }
-const std::string getLines() const
+const std::string RS::Header::getLines() const
 {
     std::string retVal = firstLine;
     if (firstLine.size()) 
@@ -34,7 +32,7 @@ const std::string getLines() const
 	retVal += p->first + ": " + p->second + "\r\n";
     return retVal + "\r\n";
 }
-std::string getHeader(const std::string& name, const std::string& defaultValue)
+std::string RS::Header::getHeader(const std::string& name, const std::string& defaultValue) const
 {
     std::map<std::string, std::string>::const_iterator p = headers.find(name);
     if (p != headers.end())

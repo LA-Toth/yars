@@ -18,7 +18,7 @@
 
 #include "rs/rsserverresponse.hh"
 
-void RS::ServerResponse::ServerResponse() : Header(), version("1.0") {
+RS::ServerResponse::ServerResponse() : Header(), version("1.0") {
 }
 
 void RS::ServerResponse::setVersion(const std::string& version)
@@ -33,7 +33,7 @@ void RS::ServerResponse::setStatus(const std::string& status)
     this->firstLine = "RS/" + this->version + " " + this->status + " " + this->statusText;
 }
 
-void RS::ServerResponse::setStatus(const std::string& statusText)
+void RS::ServerResponse::setStatusText(const std::string& statusText)
 {
     this->statusText = statusText;
     this->firstLine = "RS/" + this->version + " " + this->status + " " + this->statusText;

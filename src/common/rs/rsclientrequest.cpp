@@ -16,9 +16,9 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 
-#include "rsclientrequest.hh"
+#include "rs/rsclientrequest.hh"
 
-void RS::ClientRequest::ClientRequest() : Header(), version("1.0") {
+RS::ClientRequest::ClientRequest() : Header(), version("1.0") {
 }
 
 void RS::ClientRequest::setVersion(const std::string& version)

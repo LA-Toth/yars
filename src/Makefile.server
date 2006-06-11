@@ -25,16 +25,18 @@ make:
 CXX_SOURCES  = 
 CXX_SOURCES += common/checksums.cpp
 CXX_SOURCES += common/confparser.cpp
-CXX_SOURCES += common/rwlock.cpp
 CXX_SOURCES += common/helpers.cpp
-CXX_SOURCES += common/rsparser.cpp
-CXX_SOURCES += common/rsserverrequest.cpp
+CXX_SOURCES += common/rwlock.cpp
+CXX_SOURCES += common/rs/rsheader.cpp
+CXX_SOURCES += common/rs/rsparser.cpp
+CXX_SOURCES += common/rs/rsserverrequest.cpp
+CXX_SOURCES += common/rs/rsserverresponse.cpp
 CXX_SOURCES += common/types/checksuminfo.cpp
 CXX_SOURCES += common/types/imageinfo.cpp
 CXX_SOURCES += common/types/semaphore.cpp
-CXX_SOURCES += server/srv.cpp
 CXX_SOURCES += server/config.cpp
 CXX_SOURCES += server/config_thread.cpp
+CXX_SOURCES += server/srv.cpp
 
 C_SOURCES =
 

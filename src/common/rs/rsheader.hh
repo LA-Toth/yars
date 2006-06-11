@@ -26,14 +26,14 @@
 namespace RS {
     
     class Header {
-	std::map<std::sting, std::string> headers;
+	std::map<std::string, std::string> headers;
     protected:
 	std::string firstLine;
     public:
-	void setHeader(const std::string& name, std::string& value);
+	void setHeader(const std::string& name, const std::string& value);
 	const std::string getLines() const; 
-	std::string getHeader(const std::string& name) {return getHeader(name, ""); }
-	std::string getHeader(const std::string& name, const std::string& defaultValue);
+	std::string getHeader(const std::string& name) const {return getHeader(name, ""); }
+	std::string getHeader(const std::string& name, const std::string& defaultValue) const;
     };
 }
 
