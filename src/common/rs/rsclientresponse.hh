@@ -32,8 +32,8 @@ namespace RS
 	std::string statusText;
 	std::string version;
     public:
-	ClientResponse(const RSParser::Parser& parser);
-	ClientResponse(const RSParser::Parser::strList& lines);
+	ClientResponse(const RS::Parser& parser);
+	ClientResponse(const RS::Parser::strList& lines);
 	std::string getStatus() const { return status; }
 	std::string getStatusText() const { return statusText; }
 	std::string getVersion() const {return version; }

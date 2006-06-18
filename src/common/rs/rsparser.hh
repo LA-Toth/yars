@@ -23,7 +23,7 @@
 #include <vector>
 
 
-namespace RSParser {
+namespace RS {
     
     class Parser {
 	/// contains the buffer, etc.

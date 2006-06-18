@@ -16,11 +16,12 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 
-#infdef UDPDATA__HH
+#ifndef UDPDATA__HH
 #define UDPDATA__HH
 
 class UDPData
 {
+public:
     char digest[16]; // md5sum of imgname
     int32_t index;
     int32_t checksum;

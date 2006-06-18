@@ -32,8 +32,8 @@ namespace RS
 	std::string url;
 	std::string version;
     public:
-	ServerRequest(const RSParser::Parser& parser);
-	ServerRequest(const RSParser::Parser::strList& lines);
+	ServerRequest(const RS::Parser& parser);
+	ServerRequest(const RS::Parser::strList& lines);
 	std::string getMethod() const { return method; }
 	std::string getURL() const { return url; }
 	std::string getVersion() const {return version; }

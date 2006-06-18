@@ -21,7 +21,7 @@
 #include <errno.h>
 #include "rs/rsparser.hh"
 
-class RSParser::Parser::Helper
+class RS::Parser::Helper
 {
     bool hasEOL; //< has EOL char(s)
     int posEOL;  //< position of EOL 
@@ -82,17 +82,17 @@ private:
     }    
 };
 
-RSParser::Parser::Parser() : helper(new Helper())
+RS::Parser::Parser() : helper(new Helper())
 {
 }
 
-RSParser::Parser::~Parser()
+RS::Parser::~Parser()
 {
     if (helper)
 	delete helper;
 }
 
-int RSParser::Parser::parseHeader(int& fd, fd_set *readfds, fd_set* exceptfds)
+int RS::Parser::parseHeader(int& fd, fd_set *readfds, fd_set* exceptfds)
 {
     int retval = 1;
     if (FD_ISSET(fd, exceptfds)) {
@@ -130,7 +130,7 @@ int RSParser::Parser::parseHeader(int& fd, fd_set *readfds, fd_set* exceptfds)
 		    helper->forcedRemoveLine();
 		    retval = 0;
 		} else if(helper->getEOL() > 0) {
-		    helper->buffer[ helper->getOffset() ] = 0;
+		    helper->buffer[ helper->getEOL() ] = 0;
 		    helper->tempString += helper->buffer;
 		    helper->removeLine();
 		    retval = 1;

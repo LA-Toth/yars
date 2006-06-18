@@ -21,6 +21,7 @@
 
 #include "confparser.hh"
 #include "types/imageinfo.hh"
+#include "rwlock.hh"
 
 typedef struct Configuration
 {
@@ -33,7 +34,7 @@ typedef struct Configuration
 # ifndef EXTERN_CFG
 #   define EXTERN_CFG extern
 # endif
-EXTERN_CFG Configuration* configuration;
+EXTERN_CFG RWLock::LockProtected<Configuration*> configuration;
 #endif
 
 #endif

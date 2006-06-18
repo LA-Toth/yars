@@ -23,7 +23,7 @@
 
 namespace RS {
     
-    class ServerResponse: Header {
+    class ServerResponse: public Header {
 	std::string version;
 	std::string status;
 	std::string statusText;

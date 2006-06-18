@@ -100,6 +100,33 @@ std::string Helpers::trimLeft(const std::string& str)
     return str2;
 }
 
+namespace
+{
+    const char md5chars[] = "0123456789abcdef";
+    char hex2char(char c)
+    {
+	if (c >='0' && c <='9') return c -'0';
+	if (c >='A' && c <='F') return c -'A';
+	if (c >='a' && c <='f') return c -'a';
+	return 0;
+    }
+    
+}
+void Helpers::digest2str(Helpers::Digests& info)
+{
+    info.hexstr[32] = 0;
+   
+     for (int i=0; i!= 16; ++i) {
+	info.hexstr[2*i] = md5chars[(info.digest[i] & 0xf0) >> 4];
+	info.hexstr[2*i + 1] = md5chars[(info.digest[i] & 0xf)];
+    }
+}
+void Helpers::str2digest(Helpers::Digests& info)
+{
+    for (int i=0; i!= 32; ++i) {
+	info.digest[i / 2] = (hex2char(info.hexstr[i]) << 4) + hex2char(info.hexstr[ ++i ]);
+    }
+}
 
 /** EMACS **
  * Local variables:

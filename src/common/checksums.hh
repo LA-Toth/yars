@@ -36,3 +36,4 @@ bool calculateChecksum(int fd, ChecksumInfoList* checksums);
  * c-basic-offset: 4
  * End:
  */
+

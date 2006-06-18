@@ -53,5 +53,12 @@ namespace RWLock {
     Reader getReader();
     Writer getWriter();
   };
+
+  template <typename T>
+  class LockProtected {
+  public:
+    Lock lock;
+    T data;
+  };
 };
 #endif

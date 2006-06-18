@@ -30,9 +30,10 @@
 
 //#include <vector>
 #include "md5.h"
+#define HAS_CONFIGURATION
 #include "config.hh"
+#undef HAS_CONFIGURATION
 #include "checksums.hh"
-#include "rwlock.hh"
 
 bool validateConfig(const ConfParser::ConfigParser& parser);
 void loadConfig();
@@ -43,10 +44,8 @@ using std::setw;
 
 bool g_hasConfig = false;
 
-Configuration* configuration = 0;
 extern char* argv0;
 
-RWLock::Lock configLock;
 
 bool parseConfig(const std::string& cfgfile)
 {
@@ -67,11 +66,11 @@ bool parseConfig(const std::string& cfgfile)
 	else return false;
     }
     {
-	RWLock::Writer w = configLock.getWriter();
+	RWLock::Writer w = configuration.lock.getWriter();
 	// now we have a valid config.
-	if ( !configuration )
-	    configuration = new Configuration;
-	configuration->parser = parser;
+	if ( !configuration.data )
+	    configuration.data = new Configuration;
+	configuration.data->parser = parser;
 	loadConfig();
 	g_hasConfig = true;
     }
@@ -112,16 +111,16 @@ int split(const std::string& buf,std::vector<std::string>& vec)
 void loadConfig()
 {
     ImageInfoList lst, list;
-    std::ifstream f((configuration->parser.getValue("cache-directory") + "/imageinfo").c_str());
+    std::ifstream f((configuration.data->parser.getValue("cache-directory") + "/imageinfo").c_str());
     if (!f.fail()) {
 	f >> lst;
 	f.close();
     } else {
-	lst = configuration->infoList;
+	lst = configuration.data->infoList;
     }
 
     std::vector<std::string> images;
-    split(configuration->parser.getValue("names"), images);
+    split(configuration.data->parser.getValue("names"), images);
   
     // all image names into lst
     bool found;
@@ -146,7 +145,7 @@ void loadConfig()
 	for (size_t j =0; !found && j!= images.size(); ++j) {
 	    found = lst[i].name == images[j];
 	}
-	std::string fname = configuration->parser.getValueDefault(lst[i].name, "none");
+	std::string fname = configuration.data->parser.getValueDefault(lst[i].name, "none");
 	if (fname == "none")
 	    continue;
 	int fd;
@@ -173,10 +172,10 @@ void loadConfig()
 	close(fd);
 	list.add(img);
     }
-    configuration->infoList = list;
-    std::ofstream file((configuration->parser.getValue("cache-directory") + "/imageinfo").c_str());
+    configuration.data->infoList = list;
+    std::ofstream file((configuration.data->parser.getValue("cache-directory") + "/imageinfo").c_str());
     if (!file.fail()) {
-	file << configuration->infoList;
+	file << configuration.data->infoList;
 	file.close();
     }
 }
@@ -190,9 +189,10 @@ void printError(const std::string&error, const std::string& s, const int index){
 bool validateConfig(const ConfParser::ConfigParser& parser)
 {
     std::string s;
-    int i,size,j,k;
+    int i,size,/*j,*/k;
     std::string err;
   
+    /*
     // checking `broadcast'
     s = parser.getValue("broadcast");
     size = s.size();
@@ -233,7 +233,8 @@ bool validateConfig(const ConfParser::ConfigParser& parser)
 	    printError(err,s,err.size()+i+1);
 	    return false;	    
 	}	
-    }  
+    }
+    */ 
 
     // checking `port'
     s = parser.getValue("port");
@@ -249,7 +250,7 @@ bool validateConfig(const ConfParser::ConfigParser& parser)
 	    return false;	    
 	}	
     }  
-
+    /*
     // checking `info-port'
     s = parser.getValue("info-port");
     size = s.size();
@@ -279,6 +280,7 @@ bool validateConfig(const ConfParser::ConfigParser& parser)
 	    return false;	    
 	}	
     }
+    */
     
     // checking `names'
     s = parser.getValue("names");

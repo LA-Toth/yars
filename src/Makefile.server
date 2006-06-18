@@ -14,7 +14,7 @@ doc:
 	@doxygen ../conf/doxygen.conf 2>/dev/null >&2
 
 run: all	
-	@$(BINDIR)$(BINARY) -f ../conf/$(CONFIG_FILE)
+	@$(BINDIR)$(BINARY_FINAL) -f ../conf/$(CONFIG_FILE)
 
 make:
 	@mcedit Makefile
@@ -34,6 +34,7 @@ CXX_SOURCES += common/types/imageinfo.cpp
 CXX_SOURCES += common/types/semaphore.cpp
 CXX_SOURCES += server/config.cpp
 CXX_SOURCES += server/config_thread.cpp
+CXX_SOURCES += server/restorethread.cpp
 CXX_SOURCES += server/server_thread.cpp
 CXX_SOURCES += server/main.cpp
 

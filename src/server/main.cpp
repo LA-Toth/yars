@@ -20,17 +20,28 @@
 #include <string>
 #include <getopt.h>
 
+////////////////////////// global variables ////////////////////
+bool g_running = true;
+char * argv0;
+#define HAS_CONFIGURATION
+#define EXTERN_CFG
+#include "config.hh"
+#undef HAS_CONFIGURATION
+#undef EXTERN_CFG
+
+////////////////////////// global variables ////////////////////
+
+
+
 typedef void (*threadproc_t)(void*);
 bool parseConfig(const std::string& str);
 void config_thread(void*);
 void server_thread(void*);
 
-bool g_running = true;
 const char*const VCFG="/etc/vissza/server.conf";
 std::string cfgfile = VCFG;
-char * argv0;
 
-void startProc(threadproc_t threadProc)
+pthread_t startProc(threadproc_t threadProc, void * data=0)
 {
       pthread_t             threadId;
       pthread_attr_t        pthreadAttr;
@@ -49,10 +60,11 @@ void startProc(threadproc_t threadProc)
       if (rc = pthread_create(&threadId,
                               &pthreadAttr,
                               (void*(*)(void*))threadProc,
-                              0 )) {
+                              data )) {
 	  printf( "pthread_create ERROR.\n" );
 	  exit(1);
-      }      
+      }
+      return threadId;
 }
 
 int main(int argc, char * argv[])
@@ -83,11 +95,15 @@ int main(int argc, char * argv[])
 	    break;
 	}
     }
-  
+    
+    /// initialization
+    configuration.data = 0;
+    
+    /// main part
     parseConfig(cfgfile);
     startProc(config_thread);
     startProc(server_thread);
-
+    while (g_running) { sleep(1); }
 }
 
 

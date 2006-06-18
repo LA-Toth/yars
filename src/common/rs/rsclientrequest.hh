@@ -23,7 +23,7 @@
 
 namespace RS {
     
-    class ClientRequest: Header {
+    class ClientRequest: public Header {
 	std::string version;
 	std::string imageName;
 	std::string statusText;

@@ -28,6 +28,23 @@ namespace Helpers {
     void splitByEx(const char delimiter, const std::string& buf,std::vector<std::string>& vec);
     std::string trimEx(const std::string& s);
     std::string trimLeft(const std::string& s);
+    
+    struct Digests {
+	char digest[16];
+	char hexstr[33];
+    };
+    
+    void digest2str(Digests& d);
+    void str2digest(Digests& d);
+
+    template <class T = int>
+    T max(T a, T b) {
+	return a > b ? a : b;
+    }
+
+    int min(int a, int b) {
+	return a < b ? a : b;
+    }
 }
 
 #endif

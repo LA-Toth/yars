@@ -21,20 +21,20 @@
 #include "helpers.hh"
 
 
-RS::ClientResponse::ClientResponse(const RSParser::Parser& parser) :  error(-1)
+RS::ClientResponse::ClientResponse(const RS::Parser& parser) :  error(-1)
 {
     parseHeader(parser.getLines());
 }
-RS::ClientResponse::ClientResponse(const RSParser::Parser::strList& lines) :  error(-1)
+RS::ClientResponse::ClientResponse(const RS::Parser::strList& lines) :  error(-1)
 {
     parseHeader(lines);
 }
-void RS::ClientResponse::parseHeader(const RSParser::Parser::strList& lines)
+void RS::ClientResponse::parseHeader(const RS::Parser::strList& lines)
 {
     using namespace Helpers;
     
-    if (lines.size() < 3) {
-	error = 3;
+    if (lines.size() < 2) { // min 2 lines required!!!
+	error = 2;
 	return;
     }
     std::vector<std::string> strList;
