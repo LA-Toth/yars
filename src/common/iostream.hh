@@ -1,4 +1,4 @@
-/*  request_thread.hh - types for Incoming requests to restore an image...
+/*  iostream.hh - includes iostream, cin, cout, cerr, endl
 
     Copyright (C) 2006 Laszlo Attila Toth
 
@@ -16,34 +16,22 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 
-#ifndef REQUEST_TRHEAD__HH
-#define REQUEST_THREAD__HH
 
+#ifndef IOSTREAM__HH
+#define IOSTREAM__HH
 
-class ReceivedRequest
-{
-public:
-    std::string file;
-    uint32_t from;
-    uint32_t to;
-    unsigned char digest[16];
-};
+#include <iostream>
 
-
-
-#ifdef HAS_REQUEST
-# ifndef EXTERN_REQ
-#   define EXTERN_REQ extern
-# endif
-EXTERN_REQ std::vector<ReceivedRequest> requests;
-#endif
+using std::cin;
+using std::cout;
+using std::cerr;
+using std::endl;
 
 #endif
-
-
 /** EMACS **
  * Local variables:
  * mode: c++
  * c-basic-offset: 4
  * End:
  */
+
