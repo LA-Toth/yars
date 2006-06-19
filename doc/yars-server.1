@@ -1,6 +1,6 @@
-.TH SRV 1
+.TH YARS-SERVER 1
 . SH NAME
-srv \- file restore server
+yars-server \- file restore server
 .SH SYNOPSIS
 .B clnt
 [OPTION]...
@@ -47,10 +47,8 @@ This port is client-side: broadcast datagrams' target port, the client use it
 for listening. Because UDP datagrams cannot be larger than 1500 bytes, now only 1024 bytes
 are in these broadcast packets. Used protocol is UDP.
 .TP
-delay-count = NUMBER
-After every NUMBERth udp packets the server waits one microseconds. It is
-necessary because sometimes the network is not good enough to avoid it. For
-example switches,  network cards cannot handle too many packet simultaneously.
+cache-directory = /tmp
+Directory that holds the image info cache. The filename is \fIimageinfo\fR.
 .TP
 names = LIST
 LIST contains all available image names. Images that are not listed are
@@ -61,11 +59,11 @@ IMAGE\-NAME = FILE
 All names previosly listed are reserved. IMAGE\-NAME can be any other. Maximum
 maximum length is 3 KByte. FILE can be the path/filename of any file.
 .SH AUTHOR
-Written by László Attila Tóth <panther@elte.hu>.
+Written by Laszlo Attila Toth <panther@elte.hu>.
 .SH "REPORTING BUGS"
 Report bugs to the author.
 .SH COPYRIGHT
-Copyright \(co 2004 László Attila Tóth.
+Copyright \(co  2004, 2006 Laszlo Attila Toth.
 .PP
 .br
 This is free software; see the source for copying conditions.  There is NO

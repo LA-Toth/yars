@@ -97,6 +97,7 @@ namespace {
 		return false;
 	    }
 	    vector->unset(i);
+	    if (i % 60) usleep(1);
 	}
 	sendbuf.index = htonl(i);
 	memset(sendbuf.data,0,BUFSIZE);

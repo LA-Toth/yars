@@ -170,7 +170,7 @@ int main(int argc,char* argv[]){
 	     << "FSIZE:\t\t" << imageInfo.size << endl
 	     << "COUNT:\t\t" << end << endl;
 
-    struct timeval timeout = {3,0};
+    struct timeval timeout = {6,0};
     fd_set fdRead;
     int retval;
     

@@ -34,7 +34,7 @@
   \ifmmode\mskip#1#2\else\kern#1#3\fi\relax}
 \providecommand*{\negmedspace}{\tmspace-\medmuskip{.2222em}}
 
-\title{Visszázórendszer felhasználói dokumentáció)}
+\title{Visszázórendszer -- fejlesztői dokumentáció}
 \author{Tóth László Attila (panther@elte.hu)}
 \date{}
 \begin{document}
@@ -42,13 +42,10 @@
   \mktoc
 
   \begin{abstract}
-    A visszázórendszer egy linuxra írt program, amely néhány fájlt küld át a hálózaton, broadcast UDP csomagokkal. A
-    kliens ezt egy fájba menti, mely akár lehet egy speciális eszközfájl is, ezáltal egy merevlemez vagy partíció
-    közvetlenül visszatölthető. Ugyanakkor nem feltétlenül az egészet fájlt, mivel mind a szerver, mind a kliens
-    ellenőrző összegeket számol, csak az eltérő részek utaznak a hálózaton. A 4GiB-nál nagyobb fájlokat is kezeli a
-    rendszer.
-    
-    Akkor igazán hatékony, ha sok kliens fut egyszerre, így egyszerre több számítógépen lehet a visszatöltést elvégezni.
+    A visszázórendszer egy linuxra írt program, amely fájlokat küld át a hálózaton, broadcast UDP csomagokkal,
+    elsősorban partíciót, vagy akár teljes merevlemez tartalmát. A nagy méretű fájlokat is kezeli, vagyis a 4 GiB-os
+    határ nincs meg. A korlát 4 TiB. A kliens által letöltött adatot egyből lehet a partícióra írni. Támogatott a
+    részleges áttöltés, amikor nem kell a teljes partíciót lementeni, hanem csak egy részét, amely megváltozott.
   \end{abstract}
 
   \section{A rendszer alapgondolata}
@@ -59,26 +56,26 @@
   szerverhez.
   Ez a visszázórendszer többek között ezt kerüli ki: a broadcast udp használata miatt optimális esetben egy-egy csomag
   csak egyszer megy át a hálózaton. Ha a hálózaton csomagvesztés történik, akkor sincs gond, mehet tovább a rendszer,
-  idővel úgyis újra el lesz küldve az elveszett csomag. Ugyanakkor nem szükséges a teljes fájl átküldéese, ha a nagy
-  része megegyezik, ahogy az \texttt{rsync} esetén sem kell a nem módosult fájlokat újra letölteni.
+  idővel úgyis újra el lesz küldve az elveszett csomag. Ugyanakkor nem szükséges a teljes fájl átküldése, ha a nagy
+  része megegyezik, ahogy az \texttt{rsync} esetén sem kell a nem módosult állományokat újra letölteni.
+
+  Programozói szemmel lényeges szempont a minél nagyobb hordozhatóság. A fejlécek, egyes függvények használata
+  linuxhoz köti a programot, de egzotikus megoldásokat nem tartalmaz. Sokszor bináris adatokkal kell dolgozni, aminél
+  számít a bájtsorrend, ezért a legegyszerűbb megoldásnak az Internet bájtsorrendjének használata bizonyult. Az STL
+  nagyon sokféle típust tartalmaz, melyek nagyon jól használhatóak ebben a rendszerben is, csak olyan esetben szerepel
+  alternatív megoldás a kódban, ahol a többlet funkciók miatt már nem elegendő az STL valamelyik típusa.
   
-  \section{A program fordítása, indítása}
-  A program gcc 4.0.3-as fordítóval tesztelt, régebbivel is le kell fordulnia (pl. 3.4.x). A forrás az \texttt{src}
-  könyvtárban található, oda belépve egy \texttt{make} parancsot kell beírni a parancssorba. A program többszálú, ezért
-  a \texttt{pthread} függvényeket használja.
-
-  Az indításról szóló rész, opciókkal, mindennel megtalálható a felhasználói leírásban.
-
   \section{A kód (áttekintés)}
-  A program kódja alapvetően három részre tagolt, a \textt{src} könyvtáron belül található \texttt{client},
+  A program kódja alapvetően három részre tagolt, a \texttt{src} könyvtáron belül található \texttt{client},
   \texttt{common}, \texttt{server} könyvtáraknak megfelelően. Ezekben a kliens által, közösen illetve a szerver által
   használt állományok találhatóak.
+
 
   \subsection{A közösen használtak}
   Itt is több részre tagolt, a \texttt{types} alatt a fájlinformációkkal és az UDP csomagok kezelésével
   kapcsolatos típusok vannak. A \texttt{rs} könyvtárban a szerver és a kliens kommunikációjához használt típusok
   szerepelnek, külön névtérben: \texttt{rs}. A használt protokoll lényegében megegyezik a \texttt{HTTP/1.0}-val, csak
-  itt \textt{RS} a neve a visszatöltő rendszer angol elnevezése alapján. Végül vannak olyan típusok, állományok, melyek
+  itt \texttt{RS} a neve a visszatöltő rendszer angol elnevezése alapján. Végül vannak olyan típusok, állományok, melyek
   nincsenek alkönyvtárba szervezve. Ilyenek például a konfigurációs beállításokat tartalmazó, ellenőrző összeget számító
   állományok (függvényeket tartalmaznak).
   
@@ -91,8 +88,544 @@
   főprogram indít, az egy-egy függvényből áll, a kéréseket fogadó szál viszont már külön típust használ, amikor fogadta
   a kérést (hogy melyik image rész szükséges).
   
+  \subsection{Tesztelések}
+  A legtöbb esetben a tesztelés úgy ment, hogy ha a program kapott valamilyen adatot, akkor azt jól dolgozta-e fel,
+  vagyis a kódba kiíró utasítások lettek beszúrva, melyek a végleges verzióból kikerültek.
+  
+  \section{A közösen használt állományok}
+  
+  \subsection{confparser(.cpp,.hh)}
+  Ebben az állományban található a \texttt{ConfParser::ConfigParser} típus, amely beolvassa a beállításokat, és többféle
+  belületet is biztosít az adatok lekérésére. Elsősorban a \texttt{std::string} használatára van kihegyezve, de a
+  C-stílusú karaktertömböket is kezeli a legtöbb esetben. Ez azonban nincs használva. Így kétféleképpen lehet adatot
+  lekérdezni:\\
+  \texttt{std::string getValue(const std::string\& name);\\
+    std::string getValueDefault(const std::string\& name, const std::string\& defaultValue);\\
+  }
+  Igazából mindkettőnél van alapértelmezett érték, az elsőnél az üres sztring.
+  
+  \subsection{md5.h, stb.}
+  Ez az \texttt{md5sum} program kódjából származik, az egyetlen lényeges kód:\\
+  \texttt{void *md5\_buffer (const char *buffer, size\_t len, void *digest);}\\
+  Az utolsó paraméterben adja vissza a 16 bájtos eredményt.
+
+  \subsection{rwlock}
+  Ez a szerverben használt egyik legfontosabb névterület (\texttt{RWLock}). Néhány típust vezet be, az egyik
+  \texttt{Lock}, amely az író-olvasó problémához ad megoldást. Itt az íróknak van elsőbbségük, azok ugyanis ritkán
+  írnak.
+  A zárolni kívánt szakaszt a \texttt{Reader} vagy \texttt{Writer} típussal kell védeni, a konstruktora illetve
+  destruktora végzi el a szakasz zárolását, felszabadítását. Ezeket a \texttt{Lock} típus \texttt{getReader()} és
+  \texttt{getWriter()} függvényeivel lehet megkapni, például:\\\\
+  \texttt{\{\\
+    \hspace*{5mm}RWLock::Reader r = myLock.getReader();\\
+    \hspace*{5mm}\emph{kritikus szakasz}\\
+    \}\\
+  }
+
+  Még egy típust vezet be, a \texttt{LockProtected\textless T\textgreater}-et amely egy template, hogy együtt lehessen
+  a változó és az azt védő Lock objektum (lock és data  néven).
+  
+  A lock-olás megvalósítása útkifejezésekkel történik, többféleképpen is megadható lenne, itt egy bonyolultabb, de
+  működő megoldás van:\\\\
+  \texttt{
+     \textbf{path} requestread, requestwrite \textbf{end};\\
+     \textbf{path} \{ openwrite \}, openread \textbf{end};\\
+     \textbf{path} \{ openread2; read \}, write \textbf{end};\\
+     requestread: \textbf{begin} openread \textbf{end};\\
+     openread: \textbf{begin} openread2 \textbf{end};\\
+     openread2: \textbf{begin} \textbf{end};\\
+     requestwrite: \textbf{begin} openwrite \textbf{end};\
+     openwrite: \textbf{begin} write \textbf{end};\\
+     READ: \textbf{begin} reqestread; read \textbf{end};\\
+     WRITE: \textbf{begin} requestwrite \textbf{end};
+  }
   
   
+  \subsection{helpers}
+  A \texttt{Helpers} névterület néhány függvényt és típust vezet be, ezek a következők:\\\\
+  void split(const std::string\& buf,std::vector\textless std::string\textgreater\& vec);\\
+  void splitBy(const char delimiter, const std::string\& buf,std::vector\textless std::string\textgreater\& vec);\\
+  void splitByEx(const char delimiter, const std::string\& buf,std::vector\textless std::string\textgreater\& vec);\\\\
+  std::string trimEx(const std::string\& s);\\
+  std::string trimLeft(const std::string\& s);\\
+  \\
+  struct Digests \{\\
+    char digest[16];\\
+    char hexstr[33];\\
+  \};
+  \\
+  void digest2str(Digests\& d);\\
+  void str2digest(Digests\& d);\\
+  \\
+  template \textless class T \textgreater\\
+  T max(T a, T b) \{\\
+  \hspace*{2mm} return a \textgreater b ? a : b;\\
+  \}\\
+  \\
+  template \textless class T\textgreater\\
+  T min(T a, T b) \{\\
+  \hspace*{2mm}  return a \textless b ? a : b;\\\\
+  \}
+
+  Ezek rendre a következőt tudják a \texttt{split*} a \texttt{buf} sztringet vágja szét a \texttt{vec} tömbbe. A
+  \texttt{split} a szóköz, a \texttt{splitBy} a \texttt{delimiter} mentén, a \texttt{splitByEx} szintén, csak itt két
+  részre vágja, nem minden \texttt{delimiter} mentén vág.
+  
+  A \texttt{Digest} kényelmi okokból bevezetett típus, így egyszerűbb lett a következő két függvény használata, mely md5
+  digest (16 karakter) és az azt reprezentáló hexadecimális számokból álló sztring között konvertál.
+
+  Néha szükséges a \texttt{min} és a \texttt{max} használata, ezért ezt is megtalálható itt, az általánosság célja miatt
+  sablonként.
+  
+  A \texttt{trimEx} lényegében ugyanazt csinálja, mint a \texttt{trim} tenné, csak éppen nem a jobb feléről vágja le a
+  szóközt, hanem az adott szó utáni első szóköztől vág. A \texttt{trimLeft} csak a baloldali szóközöket eszi meg.
+  
+
+  \subsection{checksum}
+  Itt a következő függvények szerepelnek, öndokumentálva, ahol a programban az utolsó használt csak:\\\\
+  \texttt{
+    /// calculates checksume of a part of a file. Return value indicates success\\
+    bool calculateChecksum(int fd, off64\_t offset, size\_t maxLength, ChecksumInfo* ci, size\_t\& readLength);\\
+    /// calculates every blocks's checksum, every block's size is \textless= block\_size\\
+    bool calculateChecksum(int fd, ChecksumInfoList* checksums, size\_t block\_size);\\
+    /// calculates every block's checksum, block size is 1024*1024 bytes\\
+    bool calculateChecksum(int fd, ChecksumInfoList* checksums);\\\\
+  }
+
+  Mindegyik egy-egy megnyitott fájlleírót használ, és a típusoknál tárgyalt \texttt{ChecksumInfoList}-be ment.
+
+  \subsection{iostream}
+  Ez a fejléc az iostream header include-olja és bevezeti a \texttt{cin}, \texttt{cerr}, \texttt{cout}, \texttt{endl}
+  neveket a globális névtérbe.
+  
+  \subsection{types/bitvect, types/bitvectex}
+  A \texttt{BitVector} és a \texttt{BitVectorEx} típusokat tartalmazzák, a különbség csak annyi, hogy az utóbbi kiír
+  pontokat, ha olyan bitet kell beállítani, amelynek az előzője lett előtte igazra állítva, valamint kiír egy
+  \texttt{|szám|} alakú részt, ahol \texttt{szám} darab bit nem lett igazra állítva.
+  
+  A felületük teljesen azonos:\\\\
+  \texttt{
+    void set(const int\& index );\\
+    void unset(const int\& index );\\
+    bool operator[](const int\& index) const;\\
+    void intv(int\& from, int\&  to) const;\\
+    void intv1(int\& from, int\&  to) const;\\\\
+  }
+  A \texttt{set} és a \texttt{unset} állítja egyesre illetve nullára az adott bitet, az \texttt{operator[]()} egy adott
+  bit értékét adja vissza, végül a \texttt{intv} és \texttt{intv1} a paraméterben megadott változókat állítja be
+  azt jelezve, hogy az elejétől kezdve mettől meddig van csupa $0$-ból vagy csupa egyesből álló rész. Amennyiben nincsen
+  ilyen, akkor a második paraméter, a \texttt{to} értéke $-1$ lesz.
+
+  Fontos még a konstruktor is, mivel a bitvector nem átméretezhető, vagyis a konstruktorparaméterben megadott egész szám
+  lesz a mérete az objektum teljes élettartama alatt.
+
+  \subsection{types/checksuminfo}
+  Ebben kétféle típus szerepel, a \texttt{ChecksumInfo} és a \texttt{ChecksumInfoList}. Az utóbbi egy wrapper az
+  \texttt{std::vector}-ra. Az előbbinek egyetlen adattagja van:\\
+  \texttt{char digest[16];}
+
+  Mindkettőre igaz az, hogy a copy és alapértelmezett constructor, értékadó operátor, összehasonlítő műveletek és a
+  ki- és bemeneti operátorok definiáltak.
+
+  A szokásostól eltérően az \texttt{operator\textless\textless()} és \texttt{operator\textgreater\textgreater()}
+  operátorok binárisan írják és olvassák az adatot, azaz az egész számok is binárisan reprezentáltak. Ezért fontos a
+  bájt sorrend, ennek megoldására a a \texttt{htonl} és hasonló függvények használata szolgált. Vagyis az Internet
+  bájtsorrendjében tárolódik minden, ugyanez van használva a hálózati kommunikáció esetén is.
+
+  A \texttt{ChecksumInfoList} még nem említett felülete:\\\\
+  \texttt{
+    size\_t size() const;\\
+    void add(ChecksumInfo\& info);\\
+    ChecksumInfo operator[](int idx) const;\\
+    void clear();
+  }
+  
+  \subsection{types/imageinfo}
+  Ez az előzővel lényegében teljesen azonos módon működik, az eltérés csak a \texttt{ImageInfo} adattagjaiban van:
+  \texttt{
+    std::string name;\\
+    char  digest[16];\\
+    int64\_t size;\\
+    int32\_t blockSize, lastBlockSize;\\
+    time\_t lastModified;    
+  }
+
+  A \texttt{name} a szerver konfigfájljában szereplő név, a \texttt{digest} ennek md5 kivonata, a \texttt{size} pedig a
+  hozzá tartozó fájl mérete. A \texttt{blockSize} fixen 1 MiB, de a \texttt{lastBlockSize} nem, mivel ritka az olyan
+  állomány, amely pontosan az 1 MiB többszöröse lenne.
+  
+  \subsection{types/semaphore}
+  A \texttt{Semaphore} típussal implementáltak a fentebb említett útkifejezések. A kód a \texttt{CommonC++}
+  módosításával készült, az abban megadott kommentek magyarázzák, mit csinálnak a függvények:\\\\\\
+  \texttt{
+    typedef unsigned long   timeout\_t;\\
+    class SemaphoreException \{\};\\
+     \\
+     class Semaphore\\
+    \{\\\\
+    public:\\\\
+    /**\\
+     * The initial value of the semaphore can be specified.  An initial\\
+     * value is often used When used to lock a finite resource or to\\
+     * specify the maximum number of thread instances that can access a\\
+     * specified resource.\\
+     *\\
+     * @param resource specify initial resource count or 1 default.\\
+     */\\
+    Semaphore(unsigned resource = 1);\\
+    \\
+    /**\\
+     * Destroying a semaphore also removes any system resources\\
+     * associated with it.  If a semaphore has threads currently waiting\\
+     * on it, those threads will all continue when a semaphore is\\
+     * destroyed.\\
+     */\\
+    virtual \~{}Semaphore();\\
+    \\
+    /**\\
+     * Wait is used to keep a thread held until the semaphore counter\\
+     * is greater than 0.  If the current thread is held, then another\\
+     * thread must increment the semaphore.  Once the thread is accepted,\\
+     * the semaphore is automatically decremented, and the thread\\
+     * continues execution.\\
+     *\\
+     * The pthread semaphore object does not support a timed "wait", and\\
+     * hence to maintain consistancy, neither the posix nor win32 source\\
+     * trees support "timed" semaphore objects.\\
+     *\\
+     * @return false if timed out\\
+     * @param timeout period in milliseconds to wait\\
+     * @see \#post\\
+     */\\
+    bool wait(timeout\_t timeout = 0);\\
+    \\
+    /// Ugyanaz, ahogy Dijkstra használta:\\
+    void P() \{ wait(); \}\\
+    \\
+    \\
+    /**\\
+     * Posting to a semaphore increments its current value and releases\\
+     * the first thread waiting for the semaphore if it is currently at\\
+     * 0.  Interestingly, there is no support to increment a semaphore by\\
+     * any value greater than 1 to release multiple waiting threads in\\
+     * either pthread or the win32 API.  Hence, if one wants to release\\
+     * a semaphore to enable multiple threads to execute, one must perform\\
+     * multiple post operations.\\
+     *\\
+     * @see \#wait\\
+     */
+    void post(void)\\;
+    \\
+    /// Ugyanaz, ahogy Dijkstra használta
+    void V() \{ post(); \};\\
+    \\
+    // FIXME: how implement getValue for posix compatibility ?\\
+    /**\\
+     * Get the current value of a semaphore.\\
+     *\\
+     * @return current value.\\
+     */
+     int getValue(void);\\
+    \};
+     \\
+     /**
+     * The SemaphoreLock class is used to protect a section of code through\\
+     * a semaphore so that only x instances of the member function may\\
+     * execute concurrently.\\
+     *\\
+     * A common use is\\
+     *\\
+     * void func\_to\_protect()\\
+     * \{\\
+     *   SemaphoreLock lock(semaphore);\\
+     *   ... operation ...\\
+     * \}\\
+     *\\
+     * NOTE: do not declare variable as "SemaohoreLock (semaphore)", the\\
+     * mutex will be released at statement end.\\
+     *\\
+     * @author David Sugar \textless dyfet@gnu.org\textgreater\\
+     * @short Semaphore automatic locker for protected access.\\
+     */\\
+     class SemaphoreLock\\
+     \{\\
+     public:\\\\
+     /**\\
+     * Wait for the semaphore\\
+     */\\
+     SemaphoreLock( Semaphore\& \_sem );\\\\
+     /**\\
+     * Post the semaphore automatically\\
+     */\\
+     // this should be not-virtual\\
+     \~{}SemaphoreLock();\\
+     \};
+    }      
+
+
+  Az RWLock::Lock az utóbbi típus alapján készült.
+
+  \subsection{types/udpdata}
+  Az \texttt{UDPData} típus felülete:\\\\
+  \texttt{
+    char digest[16]; // md5sum of imgname\\
+    int32\_t index;\\
+    int32\_t checksum;\\
+    char data[1024];\\\\
+  }
+  Ez az, ami a broadcast csomagokban utazik. Az \text{index} jelzi, hogy hanyadik 1024 bájtos blokkja a fájlnak. A
+  \texttt{checksum} pedig a \texttt{data} rész karaktereinek összeadásából származik.
+  
+  \subsection{rs/rsparser}
+  Az \texttt{RS::Parser} típus a hálózati foglalaton érkező adatot (fejlécet) értelmezi, és soronként bemásolja egy
+  \texttt{std::vectorba}. Ha valahol hibát észlel, azt jelzi. Az értelmező függvény:\\
+
+  \texttt{int parseHeader(int\& fd, fd\_set *readfds, fd\_set *excepfds);}\\
+  
+  Ez a függvény arra lett kitalálva, hogy az objektumot használó függvény \texttt{select} utasításában meghívja, ha
+  érkezhet adat. A hiba \texttt{fd\_set} csak az OOB (Out Of Bound) adat kezelésére van.
+  
+  Ha hiba van a folyamban (foglalaton), akkor azt lezárja és -1 értéket ad neki. Ha minden műkdödik, akkor addig olvassa
+  a fejlécet, amíg egy üres sort nem talál. Mivel ekkor fennmaradhat adat, ezért szükség lehet annak lekédezésére:\\
+  \texttt{ std::string getRemainingData() const;}
+
+  \subsection{rs/rsheader}
+  A válaszüzenethez használt \texttt{RS::Header} típus, felülete:\\\\
+  \texttt{
+  void setHeader(const std::string\& name, const std::string\& value);\\
+  const std::string getLines() const;\\
+  std::string getHeader(const std::string\& name) const {return getHeader(name, ""); }\\
+  std::string getHeader(const std::string\& name, const std::string\& defaultValue) const;\\
+  }
+  
+  Az utóbbi kettő függvény fölösleges, kivéve egységteszteléshez. A típus védett adattagja a \texttt{std::string
+  firstLine}, mivel az nem triviális, hogy hogyan néz ki - a származtatott osztály állítja be. A \texttt{getLines()}
+  adja vissza a teljes generált fejlécet.
+  
+  \subsection{rs/rsserverresponse}
+  A \texttt{RS::Header} osztályból származó \texttt{RS::ServerResponse} típus, amely az első sort állítja be a
+  következő függvények révén:\\\\
+  \texttt{
+    void setVersion(const std::string\& version);\\
+    void setStatus(const std::string\& status);\\
+    void setStatusText(const std::string\& statusText);\\
+  }
+  
+  Ezek pontosan ugyanúgy viselkednek, mint a \texttt{HTTP} protokoll esetén.
+       
+  A szerver ezzel válaszol a kliens valamilyen kérésére.
+  
+  \subsection{rs/clientrequest}
+  A \texttt{RS::ClientRequest} a \texttt{RS::ServerResponse}-hoz hasonló típus, a \texttt{RS::Header} osztályból
+  származik és a következő függvényeket definiálja:\\\\
+  \texttt{
+    void setVersion(const std::string\& version);\\
+    void setImageName(const std::string\& imageName);\\
+  }
+  
+  A HTTP-től eltérés az utóbbi, de igazából csak a név más, ugyanis a HTTP estén ez az URL lenne.
+  
+  A kliens ezt küldi el.
+  
+  \subsection{rs/rsserverrequest}
+  Az \texttt{RS::ServerRequest} önálló típus lett, bár szinte teljesen megegyezik az \texttt{RS::ClientResponse}
+  osztállyal. A szerver ezt olvassa, mint a klienstől kapott kérést.
+
+  Felülete:\\\\
+  \texttt{
+    ServerRequest(const RS::Parser\& parser);\\
+    ServerRequest(const RS::Parser::strList\& lines);\\
+    std::string getMethod() const;\\
+    std::string getURL() const;\\
+    std::string getVersion() const;\\
+    std::string getHeader(const std::string\& name) const {return getHeader(name, ""); }\\
+    std::string getHeader(const std::string\& name, const std::string\& defaultValue) const;\\
+    int getError()  const;\\
+    bool hasError() const;\\
+  }
+
+  A \texttt{getMethod()} nem használt, szerepe a HTTP-szerű \texttt{GET}, esetleg \texttt{POST} megkülönböztetése lett
+  volna, de végül elég lett a GET használata is.
+  
+  A \texttt{getURL()} az elküldött image nevét adja vissza.
+
+  A kérésben lehet hiba is, ekkor a \texttt{getError()} a hibás sor számát (0-val kezdve) adja vissza, valamint -1-et ha
+  nem történt hiba.
+  
+  Az \texttt{RS::Parser::strList} egy typedef a \texttt{std::vector\textless std::string\textgreater} típusra.
+  \subsection{rs/rsclientresponse}
+  Az \texttt{RS::ClientResponse} az \texttt{RS::ServerRequest} osztállyal. A szervertől kapott válasz a kliensprogramban.
+  
+  Felülete:\\
+  \texttt{
+    ClientResponse(const RS::Parser\& parser);\\
+    ClientResponse(const RS::Parser::strList\& lines);\\
+    std::string getStatus() const;\\
+    std::string getStatusText() const;\\
+    std::string getVersion() const;\\
+    std::string getHeader(const std::string\& name) const {return getHeader(name, ""); }\\
+    std::string getHeader(const std::string\& name, const std::string\& defaultValue) const;\\
+    int getError() const;\\
+    bool hasError() const;\\
+  }
+
+  Látható, hogy szinkronban van a \texttt{RS::ServerResponse} felületével.
+  
+  \newpage
+  \section{A szerver}
+  A szerver a \texttt{pthread} függvénykönyvtárat használja a többszálúság kezelésére.
+
+  Az elindulás, opciók feldolgozása után azonnal értelmezi a konfigurációs állományt, hiba esetén kilép. Ha sikeres volt
+  a beolvasás, és ezután az image lista is elkészült, akkor elindítja a szálakat. Ezek:
+  \begin{itemize}
+    \item info thread, amely egy-egy image-ről ad információt a kliensnek, vagyis az ellenőrző összegeket, méretet, stb.
+    \item config thread, amely 30 percenként frissíti a beállításokat, valamint a hozzá tartozó ImageInfoList típusú
+    objektumot.
+    \item server thread, amely a kéréseket fogadja, majd indít egy-egy újabb szálat minden egyes kéréshez
+    \item restore thread, amely az udp broadcast üzeneteket küldi
+  \end{itemize}
+  
+  \subsection{config(.cpp,.hh)}
+  Itt találhatóak a konfigurációs állomány és az image lista feldolgozásával kapcsolatos függvények. Ezek ellenőrzik a
+  config file tartalmát, az image listát frissítik, mivel ki lehet menteni egy fájlba, amit a config fájl
+  \texttt{cache-directory} beállításának megfelelő könyvtárba, \texttt{imageinfo} néven ment el. Ha létezik, akkor
+  visszatölti, és mindig ellenőrzi, hogy az adott fájl változott-e (méret és módosítási idő alapján). Ha nem, akkor
+  békén hagyja, ha igen, akkor újraszámolja az ellenőrző összegeket. Ha ezzel kész van, akkor kimenti a fentebb említett
+  állományba.
+
+  Alapvetően egyetlen fontos függvénye van, aminek publikusnak kell lenni (vagyis névtelen namespace-ben nem lehet):\\
+
+  \texttt{bool parseConfig(const std::string\& cfgfile);}\\
+
+  Ahol a cfgfile paramétert a main fv adja először. Hamissal tér vissza, ha sikertelen volt valami, illetve kilépteti a
+  programot, ha nem volt korábbi konfigurációs beállítás.
+  
+  Ha valamelyik beállítás rossz, akkor kiírja/megjelöli, hol a hiba
+  
+  A \texttt{config.hh} bevezeti a következő típust:\\\\
+  typedef struct Configuration \{\\
+  \hspace*{5mm} ConfParser::ConfigParser parser;\\
+  \hspace*{5mm}ImageInfoList infoList;\\
+  \} Configuration;\\
+
+  Az ebből származó ``konfig változó''\\
+  
+  \texttt{RWLock::LockProtected\textless Configuration*\textgreater  configuration;},\\\\
+  ami az előfordítói utasításoktól függően lehet \texttt{extern}, vagy nem az, vagy egyáltalán nem jelenik meg abban az
+  állományban, amely ezt a fejlécet beillesztette.
+
+  \newpage
+  \subsection{request.hh}
+  Ez is bevezet egy védett változót, \texttt{requests} néven, ahol a \texttt{data} adattag ``felülete'':\\\\
+  \texttt{
+    std::string name;\\
+    int from;\\
+    int to;\\
+    int max;\\
+  }
+
+  Itt a \texttt{name} az image neve, \texttt{from}, \texttt{to} az, hogy melyik 1024 bájtos blokkokból álló
+  intervallumra van szükség, a \texttt{max} pedig azt jelzi, hogy melyik az utolsó szóbajöhető blokk (ezutáni már nincs
+  a fájlban).
+
+  \subsection{requestthread}
+  Ez egy típus, \texttt{RequestThread}, amely kicsit hasonlít a szálakat mint típusokat definiáló osztályokra:
+  \texttt{void run()} függvényével implementálja a szál kódját.
+  
+  Beolvassa az elküldött fejlécet, ha az jó, akkor feldolgozza, de ha nem lezárt a foglalat, akkor előtte elküld egy
+  választ. Itt a következő válaszüzenetek lehetnek, ha hiba történt, 400-as státusszal (egyébként 200, mint a HTTP
+  esetén is).
+  
+  \begin{itemize}
+  \item "Image not found"
+  \item "Image found but digest doesn't match"
+  \item "Value of 'from' or 'to' is out of bound"\\
+    vagyis valamelyik érvénytelen (negatív), vagy éppen a from nagyobb, mint a to.
+  \item  "Value of 'from' is out of bound"
+  \item  "Value of 'to' is out of bound");
+  \item  "Request is invalid, see line no \textless szám \textgreater" 
+  \end{itemize}
+  
+  A szál a végén, ha már semmi hiba nem votl, írásra zárolja a requests változót és hozzáfűzi az kérést.
+  
+  A kérés formája:\\\\
+  \texttt{
+    GET img0 RS/1.0\textbackslash r\textbackslash n\\
+    digest: \textless digest\textgreater\textbackslash r\textbackslash n\\
+    from: 0\textbackslash r\textbackslash n\\
+    to: 2\textbackslash r\textbackslash n\\
+    \textbackslash r\textbackslash n\\\\
+  }
+  ahol  digest nem kötelező.
+  
+  \subsection{restorethread}
+  Ez is egy osztály, a \texttt{run()} függvényében küldi el a broadcast csoamgokat.
+  
+  A kód lényegében egy ciklus, ahol az elején végignézi az összes kérést, ez alapján a függvényben tárolt tömbök
+  segítségével számon tartja, hogy milyen kérések érkeztek. Mivel \texttt{BitVector}-t használ annak ellenőrzésére, hogy
+  milyen részekre van igény, ezért mindig az elejéről kezdi el küldeni a csomagokat. Ez különleges esetben
+  kiéheztetéshez vezet, ugyanis előfordulhat, mindig csak az elejéről küld adatot, sosem ér a végére, hiszen az elejéről
+  kér valaki újra és újra.
+
+  Minden szóba jöhető image-et végignéz, mindig csak egyet-egyet, s amelyikből van igény, abból küld. Ez megint nem
+  hatékony, ha már sok különbözőt kértek, mert így egyre ritkábban kerül sorra ugyanaz az image. A jelenlegi
+  megvalósítás célja az átlátható, egyszerű kód volt.
+
+  Egyszerre legfeljebb 1000 csomagot küld ki, minden 60. után áll egy mikrosekundumot.
+
+  Az \texttt{UDPData}-ban szereplő egészek is a hálózat bájt sorrendjének megfelelően utaznak.
+  
+  \subsection{server\_thread}
+  A \texttt{server\_thread} függvény a kéréseket fogadó szál kódja. Amint jön egy kérés, egy \texttt{RequestThread} objektum jön
+  létre, amely feldolgozza a kérést.
+  
+  \newpage
+  \section{A kliens}
+  A korábban említett módon viselkedik, a logika függvényekre tagolt. A program nagy része a \texttt{main()} függvény
+  része, de a segítség kiírása, adott image adatainak lekérdezése illetve image részérre vonatkozó kérés küldése külön
+  függvénybe került, hogy a kód ne legyen átláthatatlan.
+  
+  A kliens a szervertől kapott adatok ismeretében ellenőrzi, hogy mennyi van meg az adott fájlból. Ehhez az ellenőrző
+  összegek ismerete kell, ha megegyezik valamelyik darab, akkor az annak megfelelő részt letöltöttre állítja be a
+  BitVectorEx típusú objektumban. 
+
+  A fő ciklus elején egy \texttt{select()} hívás van, ami alapján eldől, hogy fogadhat-e adatot a kliens, vagy inkább a
+  szervertől kérjen még egy darabot.
+  
+  A \texttt{-d} opcióval részletesen kiírja, mikor mit csinál, ellenkező esetben valami olyasmi fog szerepelni a
+  képernyőn, mint az alábbi (rövidített) sor:\\\\  
+  \texttt{......|8201|............|-8279|....}\\
+  
+  Itt az látszik, hogy kezdetben egymás után érkeznek a csomagok, amik a fájlban is egymás után vannak, azonban utána
+  sokat ugrik a számláló, és jóval arrébb található részt fogad a kliens. Ezután megint egy ugrás jön, és a korábban
+  kimaradt rész érkezik.
+  
+  \newpage
+  \section{Tesztelés}
+  Elsősorban a szerver esetén bizonyos komponenseket lehetett önállóan tesztelni, ilyen az \texttt{RWLock::Lock}
+  használata, vagy épp a típusok ellenőrzése. A \texttt{BitVector} esetén elég volt beleírni a tagfüggvények kódjába
+  kiíró utasításokat, de az \texttt{ImageInfo}, \texttt{RS::Parser} osztályok komplexek. A kérések feldolgozása is hibaforrás.
+
+  \subsection{A kérések ellenőrzése}
+  A kéréseket (\texttt{requests} változó) a következő, módosított függvénnyel lehetett ellenőrzni:
+  \texttt{
+    void RestoreThread::run()\\
+    \{\\
+    \hspace*{4mm}for (int idx = 0; ; ++idx) \{\\
+    \hspace*{8mm}sleep (5);\\
+    \hspace*{8mm}\{\\
+    \hspace*{12mm}RWLock::Reader r = ::requests.lock.getReader();\\
+    \hspace*{12mm}int i =0;\\
+    \hspace*{12mm}std::vector\textless RequestInfo\textgreater::const\_iterator it = requests.data.begin();\\
+    \hspace*{12mm}for (;it != requests.data.end(); ++it, ++i) \{\\
+    \hspace*{12mm}cout  \textless\textless  idx \textless \textless ": "   \textless\textless i \textless\textless ": "
+    \textless\textless (*it).name \textless\textless " "\\
+    \hspace*{20mm}\textless\textless it-\textgreater from \textless\textless " "
+    \textless\textless it-\textgreater to  \textless\textless endl;\\
+    \hspace*{8mm}\}\\
+    \hspace*{4mm}\}\\
+    \}    
+  }
   
 
 \end{document}

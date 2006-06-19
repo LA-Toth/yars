@@ -41,17 +41,34 @@
   \maketitle
   \mktoc
 
+
   \begin{abstract}
-    A visszázórendszer egy linuxra írt program, amely néhány fájlt küld át a hálózaton, broadcast UDP csomagokkal. A
-    kliens ezt egy fájba menti, mely akár lehet egy speciális eszközfájl is, ezáltal egy merevlemez vagy partíció
-    közvetlenül visszatölthető. Ugyanakkor nem feltétlenül az egészet fájlt, mivel mind a szerver, mind a kliens
-    ellenőrző összegeket számol, csak az eltérő részek utaznak a hálózaton. A 4GiB-nál nagyobb fájlokat is kezeli a
-    rendszer.
-    
-    Akkor igazán hatékony, ha sok kliens fut egyszerre, így egyszerre több számítógépen lehet a visszatöltést elvégezni.
+    A visszázórendszer egy linuxra írt program, amely fájlokat küld át a hálózaton, broadcast UDP csomagokkal,
+    elsősorban partíciót, vagy akár teljes merevlemez tartalmát. A nagy méretű fájlokat is kezeli, vagyis a 4 iB-os
+    határ nincs meg. A korlát 4 TiB. A kliens által letöltött adatot egyből lehet a partícióra írni. Támogatott a
+    részleges áttöltés, amikor nem kell a teljes partíciót lementeni, hanem csak egy részét, amely megváltozott.
   \end{abstract}
+
+  \section{A visszázórendszerrről}
+  A program elsősorban kisebb-nagyobb számítógépes laborok egységes adat-visszatöltésére szolgál, hogy egy-egy partíció
+  vagy merevlemez tartalma a kiszolgáló gépen lévő ``mester képmás'' (image) fájléval megegyezzen. Sok programnál a
+  méretkorlát 2 vagy 4 GiB, itt ez sokkal nagyobb, a visszázás módja miatt 4 TiB, vagyis pont az 1024-szerese.
+
+  Az \texttt{rsync}-hez hasonló szerepet tölt be, a különbség annyi, hogy az előbbinél szükséges a fájlrendszer
+  ismerete, hiszen fájlonként szinkronizál a szerverrel, itt a partíció egy bináris adathalmaznak tekinthető, nem
+  lényeges, mi is valójában.
   
-  \section{A program fordítása}
+  Ugyanakkor bármilyen kisebb-nagyobb fájl is visszatölthető, ezáltal az rsync működése szimulálható.
+  
+  \section{A program használata}
+  A visszázórendszer két bináris fájlból áll, a szerverből és a kliensből, melyek egy-egy konfigurációs állományt
+  használnak, illetve további opciókat várhatnak a parancsssorból. Részletesen később olvasható.
+  
+  Ha csak a forrás van meg, akkor a következő pontban olvasható módon le lehet fordítani, a két program a \texttt{bin}
+  könyvtárban lesz sikeres fordítás esetén, példa konfigurációs állományok találhatóak a \texttt{conf} könyvtárban, a
+  \texttt{doc} könyvtárban pedig a programok man oldalai.
+  
+  \subsection{A program fordítása}
   A program gcc 4.0.3-as fordítóval tesztelt, régebbivel is le kell fordulnia (pl. 3.4.x). A forrás az \texttt{src}
   könyvtárban található, oda belépve egy \texttt{make} parancsot kell beírni a parancssorba. A program többszálú, ezért
   a \texttt{pthread} függvényeket használja.
@@ -84,6 +101,9 @@
   \texttt{broadcast-port = 8769} A szerver erre a portra küldi a broadcast UDP datagramokat. A kliens ezen a porton
   hallgatózik. 
 
+  \texttt{cache-directory /tmp} Ebben a könyvtárban található az \texttt{imageinfo} fájl, amiben a szerver az image
+  listát gyorstárazza.
+  
   \texttt{names = LIST} Itt a \texttt{LIST} egy szóközökkel elválasztott lista, minden szó egy-egy visszatölthető fájlt
   jelöl. Amely nevek nem érvényesek, mert pl. nincsen hozzájuk tartozó fájl, azok nem kerülnek be a szerver listájába,
   vagyis a kliens nem próbálja meg letölteni.

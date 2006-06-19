@@ -1,6 +1,6 @@
-.TH CLNT 1
+.TH YARS-CLIENT 1
 . SH NAME
-clnt \- file restore client
+yars-client \- file restore client
 .SH SYNOPSIS
 .B clnt
 [OPTION]...
@@ -20,21 +20,17 @@ Parameters have short and long forms.
 \fB\-f\fR, \fB\-\-config\-file\fR=\fIFILE\fR
 Configuration file to use \- default is /etc/vissza/client.conf
 .TP
-\fB\-i\fR, \fB\-\-interactive
-Interactive mode. A menu is shown to select an image to restore.
-Same as \fB\-m\fR option, but cannot use both, but one of them must
-be used.
 .TP
 \fB\-t\fR, \fB\-\-targetfile\fR=\fIFILE\fR
-Specify the name of th file to save the backup image. If it is a
-regular file, it is truncated to 0 bytes. Required parameter.
+Specify the name of the file to save the backup image.
 .TP
 \fB\-m\fR, \fB\-\-image\fR=\fIIMAGE\-NAME\fR
-Non-interactive mode. The same as IMAGE\-NAME would be selected from
-menu. Cannot be used with \fB\-i\fR option.
+Name of the image to be restored.
 .TP
 \fB\-h\fR, \fB\-\-help\fR
 Short summary of options.
+\fB\-d\fR, \fB\-\-help\fR
+Debug mode.
 .SH FILES
 \fB/etc/vissza/client.conf\fR
 .SH EXAMPLES
@@ -62,11 +58,11 @@ This port is client-side: broadcast datagrams' target port, the client use it
 for listening. Because UDP datagrams cannot be larger than 1500 bytes, now only 1024 bytes
 are in these broadcast packets. Used protocol is UDP.
 .SH AUTHOR
-Written by László Attila Tóth <panther@elte.hu>.
+Written by Laszlo Attila Toth <panther@elte.hu>.
 .SH "REPORTING BUGS"
 Report bugs to the author.
 .SH COPYRIGHT
-Copyright \(co 2004 László Attila Tóth.
+Copyright \(co  2004, 2006 Laszlo Attila Toth.
 .PP
 .br
 This is free software; see the source for copying conditions.  There is NO
