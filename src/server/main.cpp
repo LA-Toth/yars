@@ -28,6 +28,9 @@ char * argv0;
 #include "config.hh"
 #undef HAS_CONFIGURATION
 #undef EXTERN_CFG
+#define EXTERN_REQUEST
+#include "request.hh"
+#undef EXTERN_REQUEST
 
 ////////////////////////// global variables ////////////////////
 
@@ -37,7 +40,8 @@ typedef void (*threadproc_t)(void*);
 bool parseConfig(const std::string& str);
 void config_thread(void*);
 void server_thread(void*);
-
+void info_thread(void*);
+void restoreThread(void*);
 const char*const VCFG="/etc/vissza/server.conf";
 std::string cfgfile = VCFG;
 
@@ -47,20 +51,20 @@ pthread_t startProc(threadproc_t threadProc, void * data=0)
       pthread_attr_t        pthreadAttr;
       
       int rc;
-      if (rc = pthread_attr_init(&pthreadAttr)) {
+      if ((rc = pthread_attr_init(&pthreadAttr))) {
 	  printf( "pthread_attr_init ERROR.\n" );
 	  exit(1);
           }
       
-      if (rc = pthread_attr_setstacksize(&pthreadAttr, 120*1024)) {
+      if ((rc = pthread_attr_setstacksize(&pthreadAttr, 120*1024))) {
 	  printf( "pthread_attr_setstacksize ERROR.\n" );
 	  exit(1);
       }
       
-      if (rc = pthread_create(&threadId,
+      if ((rc = pthread_create(&threadId,
                               &pthreadAttr,
                               (void*(*)(void*))threadProc,
-                              data )) {
+                              data ))) {
 	  printf( "pthread_create ERROR.\n" );
 	  exit(1);
       }
@@ -103,7 +107,11 @@ int main(int argc, char * argv[])
     parseConfig(cfgfile);
     startProc(config_thread);
     startProc(server_thread);
+    startProc(info_thread);
+    startProc(restoreThread);
     while (g_running) { sleep(1); }
+
+    if (configuration.data) delete configuration.data;
 }
 
 

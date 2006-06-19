@@ -140,7 +140,7 @@ int RS::Parser::parseHeader(int& fd, fd_set *readfds, fd_set* exceptfds)
 		    helper->forcedRemoveLine();
 		    retval = 0;
 		} else if (helper->getEOL() == -1) {
-		    helper->buffer[ helper->getOffset() ] == 0;
+		    helper->buffer[ helper->getOffset() ] = 0;
 		    helper->tempString += helper->buffer;		    
 		    helper->forcedRemoveLine();
 		}
@@ -148,6 +148,13 @@ int RS::Parser::parseHeader(int& fd, fd_set *readfds, fd_set* exceptfds)
 	}
     }
     return retval;
+}
+
+std::string RS::Parser::getRemainingData() const
+{
+    std::string retVal;
+    retVal.append(helper->buffer, helper->getOffset());
+    return retVal;
 }
 
 

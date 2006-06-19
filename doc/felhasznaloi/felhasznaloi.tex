@@ -1,0 +1,141 @@
+\documentclass[fleqn,10pt,a4paper,titlepage]{article}
+\includeonly{common,komplexfv}
+
+\include{common}
+\usepackage{booktabs}
+
+
+\renewcommand{\sectionmark}[1]{\markboth{\Roman{section}. #1}{}}
+
+\newcommand{\listazjbetu}{
+  \renewcommand{\theenumi}{\alph{enumi}}
+  \renewcommand{\labelenumi}{(\theenumi)}
+}
+\newcommand{\listazjromai}{
+  \renewcommand{\theenumi}{\alph{enumi}}
+  \renewcommand{\labelenumi}{(\theenumi)}
+}
+\newcommand{\listabetu}{
+  \renewcommand{\theenumi}{\alph{enumi}}
+  \renewcommand{\labelenumi}{\theenumi}
+}
+\newcommand{\listaszamkor}{
+  \renewcommand{\theenumi}{\alph{enumi}}
+  \renewcommand{\labelenumi}{\theenumi$^\circ$}
+}
+\newenvironment{enumzjromai}{\listazjromai\begin{enumerate}}{\end{enumerate}}
+\newenvironment{enumzjbetu}{\listazjbetu\begin{enumerate}}{\end{enumerate}}
+
+\newenvironment{enumzjr}{\begin{enumzjromai}}{\end{enumzjromai}}
+\newenvironment{enumzjb}{\begin{enumzjbetu}}{\end{enumzjbetu}}
+
+
+\DeclareRobustCommand{\tmspace}[3]{%
+  \ifmmode\mskip#1#2\else\kern#1#3\fi\relax}
+\providecommand*{\negmedspace}{\tmspace-\medmuskip{.2222em}}
+
+\title{Visszázórendszer felhasználói dokumentáció)}
+\author{Tóth László Attila (panther@elte.hu)}
+\date{}
+\begin{document}
+  \maketitle
+  \mktoc
+
+  \begin{abstract}
+    A visszázórendszer egy linuxra írt program, amely néhány fájlt küld át a hálózaton, broadcast UDP csomagokkal. A
+    kliens ezt egy fájba menti, mely akár lehet egy speciális eszközfájl is, ezáltal egy merevlemez vagy partíció
+    közvetlenül visszatölthető. Ugyanakkor nem feltétlenül az egészet fájlt, mivel mind a szerver, mind a kliens
+    ellenőrző összegeket számol, csak az eltérő részek utaznak a hálózaton. A 4GiB-nál nagyobb fájlokat is kezeli a
+    rendszer.
+    
+    Akkor igazán hatékony, ha sok kliens fut egyszerre, így egyszerre több számítógépen lehet a visszatöltést elvégezni.
+  \end{abstract}
+  
+  \section{A program fordítása}
+  A program gcc 4.0.3-as fordítóval tesztelt, régebbivel is le kell fordulnia (pl. 3.4.x). A forrás az \texttt{src}
+  könyvtárban található, oda belépve egy \texttt{make} parancsot kell beírni a parancssorba. A program többszálú, ezért
+  a \texttt{pthread} függvényeket használja.
+
+  \section{A program indítása}
+  A visszázórendszer két részből áll, a szerverből, ahol a visszázandó fájlok (image-ek) találhatók, valamint a
+  kliensből, ami a visszatöltést végzi. Az adat broadcast UDP-n utazik a hálózaton, ezért az a célszerű, ha egyszerre
+  több (sok) kliens fut, és ugyanazt töltik. A csomagok 1024 bájtnyi adatot és a fejlécet tartalmazzák.
+
+  A lefordított bináris fájlok a \texttt{bin} könyvtárban vannak. Mindegyik egy-egy konfigurációs állományt és esetleg
+  további kapcsolókat vár.
+
+  \subsection{A szerver}
+  A szerver indítása a \texttt{yars-server} paranccsal történik, az alapértelmezett beállítási fájl a
+  \texttt{/etc/vissza/server.conf}. Az ettől eltérő állományt a \texttt{-f FILE} opcióval lehet megadni.
+  
+  \subsubsection{A konfigurációs állomány}
+  A következő beállítások adhatók meg szervernek, mindegyik szükséges. A példákban az egyenlőségjel nem kötelező, elég
+  egy vagy több szóköz a név-érték párok között.
+  
+  \texttt{broadcast = hálózat}, például \texttt{broadcast 10.0.1.255}. Ez a sor mondja meg a broadcast hálózati
+  címet. Javasolt egy belső hálózati cím használata (pl. a 10.0.0.0/8-as tartomány egy része).
+
+
+  \texttt{port 8766} Ezen a porton fogadja a szerver a kéréseket, hogy melyik fájl melyik részét kell elküldeni a
+  hálózaton. TCP-t használ. Ez az alapértelmezett érték.
+  
+  \texttt{info-port 8767} Ezen a TCP porton lehet lekérdezni valamelyik image adatait.
+  
+  \texttt{broadcast-port = 8769} A szerver erre a portra küldi a broadcast UDP datagramokat. A kliens ezen a porton
+  hallgatózik. 
+
+  \texttt{names = LIST} Itt a \texttt{LIST} egy szóközökkel elválasztott lista, minden szó egy-egy visszatölthető fájlt
+  jelöl. Amely nevek nem érvényesek, mert pl. nincsen hozzájuk tartozó fájl, azok nem kerülnek be a szerver listájába,
+  vagyis a kliens nem próbálja meg letölteni.
+  
+  \texttt{IMAGE-NAME = FILE} Az előző listában szereplő nevek (\texttt{IMAGE-NAME}) egyike. A  korábbi foglalt neveket
+  leszámítva bármilyen szóközt nem tartalmazó név érvényes. A \texttt{FILE} a szerver számítógépen adja meg az elérési
+  utat. A sor összmérete 3 KiB lehet.
+
+  \subsubsection{Megjegyzések}
+  A szerver a \texttt{broadcast-port} beállítást használja fel arra, hogy honnan küldje a broadcast csomagokat. A
+  megadott kapuszám felettit használja, azza a példában a 8770-eset.
+  
+  \subsection{A kliens}
+  A kliens indítása a \texttt{yars-client} paranccsal történik, az alapértelmezett beállítási fájl a
+  \texttt{/etc/vissza/client.conf}. Az ettől eltérő állományt a \texttt{-f FILE} opcióval lehet megadni.
+  
+  \subsubsection{A konfigurációs állomány}
+  A következő beállítások adhatók meg kliensnek, mindegyik szükséges. A példákban az egyenlőségjel nem kötelező, elég
+  egy vagy több szóköz a név-érték párok között.
+  
+  \texttt{server-ip = 10.0.1.100} Ez a szerver IP címe.
+  
+  \texttt{server-port = 8767} A szerver TCP \texttt{info-port}jával azonos beállítás, ahonnan az image-ek adatait lehet
+  lekérdezni.
+  
+  \texttt{server-req-port 8766} A szerver ezen a porton fogadja a kéréseket, hogy az image melyik részét kell elküldeni.
+
+  
+  \texttt{broadcast-port = 8769} A szerver erre a portra küldi el a csomagokat.
+
+  \subsubsection{Parancssori opciók}
+  A kliens indításához a legtöbb opció elengedhetetlen, ezeket jelzi is, ha nincsenek megadva.
+  
+  \texttt{-f, -{}-config-file=FILE} A beállításokat tartalmazó fájl, az alapértelmezett\\ a \texttt{/etc/vissza/client.conf}
+  
+  \texttt{-t, -{}-targetfile=FILE} Az a fájlnév, amibe menti a letöltött adatokat.
+
+  \texttt{-m, -{}-image=IMAGE-NAME} A visszatöltendő image neve.
+
+  \texttt{-h, -{}-help} Az opciók rövid leírása (angolul).
+  
+  \texttt{-d}  Debug mód.
+
+  \subsubsection{Megjegyzések}
+  A kliens egy-egy pontot ír ki a képernyőre minden egyes megérkezett csomag esetén. Ha elveszik egy-egy csomag, majd
+  későbbi indexű következik, akkor \texttt{|2|} formában jelzi, mennyi veszett el. Itt most 2 darab.
+  
+  A kliens csak annyi részt akar letölteni a szerverről, amennyi nincs meg neki. Ez 1 MiB-os részeket jelöl, kivéve az
+  utolsót, mert az lehet kisebb is. Ekkora részekről készít ellenőrző összeget (MD5), akárcsak a szerver.
+\end{document}
+
+% Local Variables:
+% fill-column: 120
+% TeX-master: t
+% End:

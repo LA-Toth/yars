@@ -1,4 +1,4 @@
-/*  helpers.hh - Small functions
+/*  restorethread.hh - Thread class which communicates with the relay server
 
     Copyright (C) 2006 Laszlo Attila Toth
 
@@ -16,39 +16,19 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 
-#ifndef HELPERS__HH
-#define HELPERS__HH
+#ifndef RESTORETHREAD__HH
+#define RESTORETHREAD__HH
 
-#include <string>
-#include <vector>
-
-namespace Helpers {
-    void split(const std::string& buf,std::vector<std::string>& vec);
-    void splitBy(const char delimiter, const std::string& buf,std::vector<std::string>& vec);
-    void splitByEx(const char delimiter, const std::string& buf,std::vector<std::string>& vec);
-    std::string trimEx(const std::string& s);
-    std::string trimLeft(const std::string& s);
-    
-    struct Digests {
-	char digest[16];
-	char hexstr[33];
-    };
-    
-    void digest2str(Digests& d);
-    void str2digest(Digests& d);
-
-    template <class T>
-    T max(T a, T b) {
-	return a > b ? a : b;
-    }
-
-    template <class T>
-    T min(T a, T b) {
-	return a < b ? a : b;
-    }
-}
+class RestoreThread {
+    int sock;
+public:
+    RestoreThread();
+    ~RestoreThread();
+    void run();
+};
 
 #endif
+
 
 /** EMACS **
  * Local variables:

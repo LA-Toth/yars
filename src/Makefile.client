@@ -1,7 +1,12 @@
 .PHONY: all doc run make clean
 
-CXX_FLAGS=-Wall -Werror -O2 -g0 -fomit-frame-pointer -funroll-loops -DSND_BUFSIZE=1024 -I. -Icommon  -Wstack-protector
-C_FLAGS=-Wall -Werror -O2 -g0 -fomit-frame-pointer -funroll-loops -DSND_BUFSIZE=1024 -I. -Icommon  -Wstack-protector
+CC=gcc-4.0.3
+CXX=g++-4.0.3
+
+CXX_FLAGS=-Wall -Werror -O2 -g0 -fomit-frame-pointer -funroll-loops -DSND_BUFSIZE=1024 -I. -Icommon
+#  -Wstack-protector
+C_FLAGS=-Wall -Werror -O2 -g0 -fomit-frame-pointer -funroll-loops -DSND_BUFSIZE=1024 -I. -Icommon
+#  -Wstack-protector
 LDFLAGS=-lpthread
 BINARY=clnt
 BINARY_FINAL=yars-client
@@ -25,6 +30,10 @@ CXX_SOURCES += common/checksums.cpp
 CXX_SOURCES += common/confparser.cpp
 CXX_SOURCES += common/rs/rsheader.cpp
 CXX_SOURCES += common/rs/rsparser.cpp
+CXX_SOURCES += common/rs/rsclientrequest.cpp
+CXX_SOURCES += common/rs/rsclientresponse.cpp
+CXX_SOURCES += common/helpers.cpp
+CXX_SOURCES += common/types/bitvectex.cpp
 CXX_SOURCES += common/types/checksuminfo.cpp
 CXX_SOURCES += common/types/imageinfo.cpp
 CXX_SOURCES += common/types/semaphore.cpp

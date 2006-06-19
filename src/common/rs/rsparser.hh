@@ -40,6 +40,7 @@ namespace RS {
 	int parseHeader(int& fd, fd_set *readfds, fd_set *excepfds);
 	
 	const strList& getLines() const { return lines;} 
+	std::string getRemainingData() const;
     };
 }
 #endif

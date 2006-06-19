@@ -1,7 +1,12 @@
 .PHONY: all doc run make clean
 
-CXX_FLAGS=-Wall -Werror -O2 -g0 -fomit-frame-pointer -funroll-loops -DSND_BUFSIZE=1024 -I. -Icommon  -Wstack-protector  -fno-stack-protector
-C_FLAGS=-Wall -Werror -O2 -g0 -fomit-frame-pointer -funroll-loops -DSND_BUFSIZE=1024 -I. -Icommon  -Wstack-protector -fno-stack-protector
+CC=gcc-4.0.3
+CXX=g++-4.0.3
+
+CXX_FLAGS=-Wall -Werror -O2 -g0 -fomit-frame-pointer -funroll-loops -DSND_BUFSIZE=1024 -I. -Icommon  
+#-Wstack-protector  -fno-stack-protector
+C_FLAGS=-Wall -Werror -O2 -g0 -fomit-frame-pointer -funroll-loops -DSND_BUFSIZE=1024 -I. -Icommon #
+# -Wstack-protector -fno-stack-protector
 LDFLAGS=-lpthread
 BINARY=srv
 BINARY_FINAL=yars-server
@@ -29,11 +34,14 @@ CXX_SOURCES += common/rs/rsheader.cpp
 CXX_SOURCES += common/rs/rsparser.cpp
 CXX_SOURCES += common/rs/rsserverrequest.cpp
 CXX_SOURCES += common/rs/rsserverresponse.cpp
+CXX_SOURCES += common/types/bitvect.cpp
 CXX_SOURCES += common/types/checksuminfo.cpp
 CXX_SOURCES += common/types/imageinfo.cpp
 CXX_SOURCES += common/types/semaphore.cpp
 CXX_SOURCES += server/config.cpp
 CXX_SOURCES += server/config_thread.cpp
+CXX_SOURCES += server/info_thread.cpp
+CXX_SOURCES += server/requestthread.cpp
 CXX_SOURCES += server/restorethread.cpp
 CXX_SOURCES += server/server_thread.cpp
 CXX_SOURCES += server/main.cpp

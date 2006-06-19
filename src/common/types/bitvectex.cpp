@@ -55,7 +55,18 @@ void BitVectorEx::intv(int&x,int&y) const{
 	return;
     }
     y = x;
-    while ( (y!=(size-1)) &&!operator[](y+1)) ++y;
+    while ( (y!=(size-1)) && !operator[](y+1)) ++y;
+}
+
+void BitVectorEx::intv1(int&x,int&y) const{
+    x=0;
+    while (x!=size && !operator[](x)) ++x;
+    if (x==size) {
+	y = -1;
+	return;
+    }
+    y = x;
+    while ( (y!=(size-1)) && operator[](y+1)) ++y;
 }
 
 /** EMACS **

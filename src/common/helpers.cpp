@@ -123,8 +123,8 @@ void Helpers::digest2str(Helpers::Digests& info)
 }
 void Helpers::str2digest(Helpers::Digests& info)
 {
-    for (int i=0; i!= 32; ++i) {
-	info.digest[i / 2] = (hex2char(info.hexstr[i]) << 4) + hex2char(info.hexstr[ ++i ]);
+    for (int i=0; i!= 32; i+=2) {
+	info.digest[i / 2] = (hex2char(info.hexstr[i]) << 4) + hex2char(info.hexstr[ i +1  ]);
     }
 }
 

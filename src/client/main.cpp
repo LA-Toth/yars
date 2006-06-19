@@ -1,20 +1,20 @@
 /*  main.cpp - Main part of the Client
 
-    Copyright (C) 2004, 2006 Laszlo Attila Toth
+Copyright (C) 2004, 2006 Laszlo Attila Toth
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 
 
 
@@ -34,14 +34,21 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <iomanip>
-#include "confparser.h"
-#include "bitvect.h"
+#include "confparser.hh"
+#include "types/bitvectex.hh"
+#include "types/imageinfo.hh"
+#include "types/udpdata.hh"
+#include "rs/rsclientrequest.hh"
+#include "rs/rsclientresponse.hh"
 #include "md5.h"
+#include "checksums.hh"
+#include "helpers.hh"
+#include <sstream>
 
 
-//config fajl
+    //config fajl
 #define VCFG "/etc/vissza/client.conf"
-//egy broadcast csomagban az adat merete bajtban
+    //egy broadcast csomagban az adat merete bajtban
 #define BUFFER 1024
 #define SRV_INFOPORT 8767
 #define BUFSIZE 4096
@@ -53,25 +60,6 @@
 using namespace std;
 
 
-typedef struct image {
-    std::string name;
-    char    digest[16];
-    off64_t size;
-} image_t;
-
-typedef std::vector<image> imglist_t;
-
-
-typedef struct {
-    unsigned char digest[16];
-    unsigned int index;
-    int checksum;
-    unsigned char data[1024];
-    
-} SENDDATA;
-
-
-imglist_t imglist;
 bool interactive = false, debug = false;
 std::string selecting;
 std::string targetfile;
@@ -80,25 +68,23 @@ const struct option long_options[] = {
     {"config-file", 1, 0, 'f'},
     {"debug", 0, 0, 'd'},
     {"target-file", 1, 0, 't'},
-    {"interactive", 0, 0, 'i'},
     {"image", 1, 0, 'm'},
     {"help",0,0,'h'},
     {0, 0, 0, 0}
 };
 
 
-bool inline getImageList(const PantherSW::ConfigParser& parser);
-void inline selectImage(image_t *selected);
-void inline help(const char* progname);
-bool sendRequest(PantherSW::ConfigParser &parser,int from, int to,const image_t* selected);
-bool validateConfig(const PantherSW::ConfigParser& parser);
+bool getImageInfo(const ConfParser::ConfigParser& parser, const std::string& imgName, ImageInfo& info);
+void help(const char* progname);
+bool sendRequest(ConfParser::ConfigParser &parser,int from, int to,const ImageInfo& info);
+bool validateConfig(const ConfParser::ConfigParser& parser);
 
 
 int main(int argc,char* argv[]){
     
-    PantherSW::ConfigParser parser;
+    ConfParser::ConfigParser parser;
     std::string cfgfile = VCFG;
-    bool noninteractive = false;
+    bool hasImage = false;
     
     while (true) { 
 	int option_index = 0;
@@ -107,38 +93,35 @@ int main(int argc,char* argv[]){
 	    break;
 	
 	switch (c) {
-	    case 'f':
-		cfgfile = optarg;
-		break;
+	case 'f':
+	    cfgfile = optarg;
+	    break;
 		
-	    case 'i':
-		interactive = true;
-		break;
-	    case 'm':
-		selecting = optarg;
-		if (selecting.size()) noninteractive = true;
-		break;
-	    case 'h':
-		help(argv[0]);
-		exit(0);
-		break;
-	    case 't':
-		targetfile = optarg;
-		break;
-	    case 'd':
-		debug = true;
-		break;
-	    default:
-		exit (4);
+	case 'i':
+	    interactive = true;
+	    break;
+	case 'm':
+	    selecting = optarg;
+	    if (selecting.size()) hasImage = true;
+	    break;
+	case 'h':
+	    help(argv[0]);
+	    exit(0);
+	    break;
+	case 't':
+	    targetfile = optarg;
+	    break;
+	case 'd':
+	    debug = true;
+	    break;
+	default:
+	    exit (4);
 	} 
     }    
-    if (! noninteractive && ! interactive ) {
+    if (! hasImage) {
 	fprintf(stderr,"Image is not selected. Try -h for details\n");
 	exit(5);
-    } else if ( interactive && noninteractive) {
-	fprintf(stderr,"Multiple images selected. Try -h for details\n");
-	exit(5);
-    } else if ( ! targetfile.size() ) {
+    }  else if ( ! targetfile.size() ) {
 	fprintf(stderr,"target file not selected or invalid. Try -h for details\n");
 	exit(5);
     }   
@@ -150,15 +133,20 @@ int main(int argc,char* argv[]){
     } else if (! validateConfig(parser))  {
 	exit(1);
     }
-    
+
+    ImageInfo imageInfo;
+    if (!getImageInfo(parser, selecting, imageInfo)) {
+	cerr << "invalid image name!!" << endl;
+	exit (2);
+    }
     
     int sbroadcast = socket(AF_INET,SOCK_DGRAM,0);
     if (sbroadcast == -1) {
 	perror("broadcast socket");
 	exit(1);
     }
-    const int tru = 1;
-    setsockopt(sbroadcast,SOL_SOCKET,SO_BROADCAST,&tru,sizeof(tru)); //BROADCAST engedelyezese
+    const int yes = 1;
+    setsockopt(sbroadcast, SOL_SOCKET, SO_BROADCAST, &yes, sizeof(yes)); //BROADCAST engedelyezese
     
     struct sockaddr_in addrbr;
     addrbr.sin_family = AF_INET;
@@ -166,55 +154,75 @@ int main(int argc,char* argv[]){
     addrbr.sin_addr.s_addr=INADDR_ANY;
     bind(sbroadcast, (sockaddr*)&addrbr, sizeof(addrbr));
 
-    if ( ! getImageList(parser)) {
-	perror("getImageList: connect");
-	exit (2);
-    }
-    image_t selected; // selected image ....
-    selected.size = 0; // for testing
+
     
-    selectImage(&selected);
-    
-    if ( ! selected.size ) {
+    if ( ! imageInfo.size ) {
 	fprintf(stderr,"%s: Invalid image name.\n",argv[0]);
 	exit (1);	
     }
     
     std::string fname = targetfile;   // and the name of img's file
-    unsigned end = (selected.size  + RECVBUFSIZE - 1) / RECVBUFSIZE; --end;
+    int end = (imageInfo.size  + RECVBUFSIZE - 1) / RECVBUFSIZE; --end;
     
     if (debug) 
-	cerr << "IMAGE:\t\t" << selected.name << endl
+	cerr << "IMAGE:\t\t" << imageInfo.name << endl
 	     << "TARGETFILE\t" <<  targetfile << endl
-	     << "FSIZE:\t\t" << selected.size << endl
+	     << "FSIZE:\t\t" << imageInfo.size << endl
 	     << "COUNT:\t\t" << end << endl;
 
-    struct timeval timeout = {6,0};
+    struct timeval timeout = {3,0};
     fd_set fdRead;
     int retval;
     
-    SENDDATA recvBuf;	
-    PantherSW::BitVector ready(end+1);
+    UDPData recvBuf;	
+    BitVectorEx ready(end+1);
 
-    
-
-    int fd = open64 (fname.c_str(), O_CREAT/*|O_EXCL*/|O_LARGEFILE|O_WRONLY, S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH);
+    int fd = open64 (fname.c_str(), O_CREAT/*|O_EXCL*/|O_LARGEFILE|O_RDWR, S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH);
     int checksum;
-    
+
     if ( fd == -1 ) {
 	PERROR("read");
 	exit(1);
     }
-    struct stat st;
-    if (! fstat(fd ,&st )) {
-	if ( S_ISREG(st.st_mode) ) {
-	    cerr<< "Regular target file already exists. Truncating to 0 byte." << endl;
-	    ftruncate(fd,0);
+    
+    ChecksumInfoList checksums;
+    calculateChecksum(fd, &checksums);
+ 
+
+    if (checksums.size() != imageInfo.checksums.size()) {
+	if (imageInfo.size) {
+	    lseek64(fd, imageInfo.size-1, SEEK_SET);
+	    write(fd, "r", 1);
+	}
+	close(fd);
+	fd = open64 (fname.c_str(), O_CREAT/*|O_EXCL*/|O_LARGEFILE|O_RDWR, S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH);
+	lseek64(fd, 0, SEEK_SET);
+	checksums.clear();
+	calculateChecksum(fd, &checksums);
+    } 
+	 
+    if (checksums.size() != imageInfo.checksums.size()) {
+	cout << "EFDFSA " << checksums.size() << " d" << imageInfo.checksums.size()<<endl;
+    }
+    for (size_t i = 0 ; i< imageInfo.checksums.size()-1; ++i) {
+	if (!memcmp(checksums[i].digest, imageInfo.checksums[i].digest, 16)) {
+	    for (int j=0; j!=1024;++j) {
+		ready.set( i*1024 + j);
+	    }
 	}
     }
-    
-    for ( bool l = true; l;)
-    {
+	     
+    // 	// last part
+    if (imageInfo.checksums[checksums.size()-1] == checksums[ checksums.size()-1 ]) {
+	for (int j=0; j!=((imageInfo.lastBlockSize / 1024)); ++j) {
+	    cout << "j" << endl;
+	    ready.set( (checksums.size()-1) * 1024  + j);
+	}
+    }
+  
+
+    for ( bool l = true; l;) {
+	
 	FD_ZERO(&fdRead);
 	FD_SET(sbroadcast, &fdRead);
 	
@@ -223,51 +231,51 @@ int main(int argc,char* argv[]){
 	    cerr << "select retval: " << retval << endl;
 	}
 	if (retval >0) { // we may have new data
-	    
-	    if (FD_ISSET(sbroadcast, &fdRead)) { // this socket? or an other (lower) file descriptor?
+    
+	    /*if (FD_ISSET(sbroadcast, &fdRead)) */{ // this socket? or an other (lower) file descriptor?
 		
 		int res = recv(sbroadcast,&recvBuf,sizeof(recvBuf),MSG_WAITALL);
 		if ( res == -1 )		{
 		    PERROR("recv");
 		    exit(2);
 		}
-		if (!strncmp((char*)selected.digest,(char*)recvBuf.digest,16) && recvBuf.index <= end &&
-		    ! ready [recvBuf.index] )
+		if (!memcmp((char*)imageInfo.digest,(char*)recvBuf.digest,16) && (int32_t)ntohl((uint32_t)recvBuf.index) <= end &&
+		    ! ready [  ntohl(recvBuf.index) ] )
 		    // new part of the requested file
-		{
+		    {
+					
+			checksum = 0;	    
+			for (int i=0;i!=RECVBUFSIZE;++i)
+			    checksum += recvBuf.data[i]+1;
 		    
-		    checksum = 0;	    
-		    for (int i=0;i!=RECVBUFSIZE;++i)
-			checksum += recvBuf.data[i]+1;
-		    
-		    if (checksum != recvBuf.checksum) {
-			continue;
-		    }
-		    lseek64(fd,recvBuf.index * (long long)RECVBUFSIZE,SEEK_SET);
-
-		    if ( debug ) cerr << "part: " <<  recvBuf.index << "; end: " << end << endl;
-
-		    if (recvBuf.index != end) {
-			if ( write(fd,recvBuf.data,RECVBUFSIZE) == -1 ) {
-			    PERROR("write");
-			    continue;	    
-			    
-			}
-		    } else {
-			off64_t count = selected.size;
-			while (count > RECVBUFSIZE) count -= RECVBUFSIZE;
-			// now 0 <  count <= RECVBUFSIZE
-			// only `count' byte should be written
-			// if count == 0 then it is not the last datagram: last +1
-			// if count > RECVBUFSIZE: not last: last but one
-			
-			if ( write(fd,recvBuf.data,count) == -1 ) {
-			    PERROR("write");
+			if (checksum != (int32_t)ntohl(recvBuf.checksum)) {
 			    continue;
 			}
+			lseek64(fd,(int32_t)ntohl(recvBuf.index) * (int64_t)RECVBUFSIZE,SEEK_SET);
+
+			if ( debug ) cerr << "part: " <<  ntohl(recvBuf.index) << "; end: " << end << endl;
+			
+			if ((int32_t)ntohl(recvBuf.index) != end) {
+			    if ( write(fd,recvBuf.data,RECVBUFSIZE) == -1 ) {
+				PERROR("write");
+				continue;	    
+			    
+			    }
+			} else {
+			    off64_t count = imageInfo.size;
+			    while (count > RECVBUFSIZE) count -= RECVBUFSIZE;
+			    // now 0 <  count <= RECVBUFSIZE
+			    // only `count' byte should be written
+			    // if count == 0 then it is not the last datagram: last +1
+			    // if count > RECVBUFSIZE: not last: last but one
+			
+			    if ( write(fd,recvBuf.data,count) == -1 ) {
+				PERROR("write");
+				continue;
+			    }
+			}
+			ready.set(  ntohl(recvBuf.index) );
 		    }
-		    ready.set(recvBuf.index);
-		}
 	    }
 	} else if (!retval){ // timeout
 	    int from, to;
@@ -277,18 +285,17 @@ int main(int argc,char* argv[]){
 		cerr << endl;
 		cerr << "\t\t\t\e[37;41;1m--==== R E A D Y ====--\e[0;0m" << endl;		
 	    } else {
-		if ( debug ) cerr << "Request from " << from << " to "  << to << "." << endl;		
-		if ( ! sendRequest(parser,from,to,&selected) ) {
+		if ( debug ) cerr << "Request from " << from << " to "  << to << "." << endl;
+		if ( ! sendRequest(parser, from, to, imageInfo) ) {
 		    perror("sendRequest");
 		}		
- 	    }
+	    }
 	    sleep (2);
 	    
 	}
 	else {
 	    perror ("select, poll");
 	}
-	
     }
     cerr << endl;
     return 0;
@@ -296,20 +303,10 @@ int main(int argc,char* argv[]){
 
 
 
-bool inline getImageList(const PantherSW::ConfigParser& parser)
+bool getImageInfo(const ConfParser::ConfigParser& parser, const std::string& imgName, ImageInfo& info)
 {
-    image_t imgcur;
-    imglist.clear();
-    
-    //S//ocket sock;
-    //if (!sock.create()) return false;
-    
     std::string buf="",tmp;
     std::string::const_iterator ci,ci1;
-    //if (! sock.connect(parser.getValue("server-ip"),atoi(parser.getValue("server-port").c_str())) ) {
-    //return false;
-    //}
-    //while (sock.recv(tmp) >0) buf+= tmp;
     
     int sock = socket(AF_INET,SOCK_STREAM,0);
     if (sock == -1 ) return false;
@@ -326,162 +323,229 @@ bool inline getImageList(const PantherSW::ConfigParser& parser)
 
     
     if ( connect (sock,(sockaddr*)&addr,sizeof(addr)) == -1 ) return false;
-    shutdown(sock,SHUT_WR);
-    while ( (res = read(sock,buffer,4096)) > 0 ) {
-	buf.append(buffer,res);
+
+
+    RS::ClientRequest request;
+    request.setImageName(imgName);
+
+    Helpers::Digests digest;
+    memcpy(digest.digest, info.digest, 16);
+    Helpers::digest2str(digest);
+    
+    request.setHeader("dig", digest.hexstr);
+
+
+    string msg = request.getLines();
+    while (msg.size()) {
+	int r;
+	fd_set wr, er;
+	FD_ZERO (&wr);
+	FD_ZERO (&er);
+	FD_SET (sock, &wr);
+	r = select (sock + 1, 0, &wr, &er, NULL);
+	if (r == -1 && errno == EINTR) {
+	    continue;
+	}
+	if (r < 0) {
+	    perror ("select()");
+	    return false; // fatal error (but only in this thread)
+	}
+	if (FD_ISSET (sock, &wr)) {
+	    r = write (sock, msg.c_str(), msg.size());
+	    if (r < 0) {
+		perror ("write()");
+	    } else {
+		msg.erase(0,r);
+	    }
+	}
     }
+
+    shutdown(sock,SHUT_WR);
+
+    RS::Parser rsparser;
+    
+    
+    for(;;) {
+	int r;
+	fd_set rd, wr, er;
+	FD_ZERO (&rd);
+	FD_ZERO (&wr);
+	FD_ZERO (&er);
+	FD_SET (sock, &rd);
+	r = select (sock + 1, &rd, &wr, &er, NULL);
+	if (r == -1 && errno == EINTR) {
+	    continue;
+	}
+	if (r < 0) {
+	    perror ("select()");
+	    exit (1);
+	}
+	r = rsparser.parseHeader(sock, &rd, &er);
+	if (r <= 0 || sock == -1) break; 
+	usleep(1);
+    }
+    
+    // check wether the socket is valid
+    if (sock == -1) {
+	return false;
+    }
+    
+    
+    
+    RS::ClientResponse response(rsparser);
+    if (response.getStatus() != "200" ) {
+	cerr << "Problem with the request (getImageInfo):" << endl;
+	cerr << "\t" << response.getHeader("error") << endl;
+	return false;
+    }    
+
+    char fname[] = "/tmp/df98432.\\arwe.XXXXXXX";
+    mkstemp(fname);
+    int fdtmp = open(fname, O_WRONLY);
+    std::string rem = rsparser.getRemainingData();
+    write(fdtmp, rem.data(), rem.size() );
+    while ( (res = read(sock,buffer,4096)) > 0 ) {
+	write(fdtmp, buffer, res);
+    }
+    close(fdtmp);
     shutdown(sock,SHUT_RD);
     close(sock);
-    ci = buf.begin();
-    for (; ci != buf.end(); ++ci) {
-	ci1 = ci;
-	while(ci != buf.end() && *ci != ' ') ++ci;
-	imgcur.name.assign(ci1,ci);
-	md5_buffer(imgcur.name.c_str(),imgcur.name.size(),imgcur.digest);
-	
-	while (ci != buf.end() && *ci == ' ') ++ci;
-	
-	ci1 = ci;
-	while (ci != buf.end() && *ci != '\n') ++ci;
-	tmp.assign(ci1,ci);
-	memcpy(&imgcur.size,tmp.c_str(),sizeof(off64_t));
-	
-	imglist.push_back(imgcur);
-	if (ci == buf.end()) break;
-    }
+    
+    ifstream f(fname);
+    f >> info;
+    f.close();
+    unlink(fname);
     return true;
 }
 
 
-
-void selectImageInteractive(image_t *selected) {
-    int size = imglist.size();
-    std::string line;
-    int index;
-    char ch = 'x';
-    
- print_menu:    
-    // print the menu
-    printf("\n -1. List again.\n  0. Exit\n");
-    for (int i=0; i!=size;++i) {
-	printf("%3d. %s\n",i+1,imglist[i].name.c_str());
-    }
-    
-    // while it is invalid, request for a new line
-    for  (;;)
-    {
-	printf("\nChoose one (-1 - %d): ",size);
-	fflush(stdout);
-	getline(cin,line);
-	index = atoi(line.c_str());
-	if ( ! index && line != "0" ) continue; // not a number
-	if ( index > size || index < -1 ) continue; // invalid number
-	break;
-    }
-    if ( index == -1 ) goto print_menu;
-    if ( index == 0 ) {
-	printf ("Exiting.\n\n");
-	exit (0);
-    }
-    
-    --index; // because 0 means exit
-    printf ("\nYou chose %s. Is it ok? (y/n)", imglist[index].name.c_str()); fflush(stdout);
-    while  ( (ch=getchar()) != 'y' && ch != 'Y' && ch != 'N' && ch != 'n') {write(1,"Please answer y or n! ",22);}
-    
-    if ( ch == 'n' or ch == 'N' ) goto print_menu;
-    
-    // now image is selected, identified by variable 'index'
-    
-    selected->name = imglist[index].name;
-    memcpy(selected->digest,imglist[index].digest,16);
-    selected->size = imglist[index].size;
-}
-
-
-void inline selectImage(image_t* selected)
-{
-  if ( interactive ) {
-      selectImageInteractive( selected );
-  } else {
-      int size = imglist.size();
-      for (int i = 0; i != size; ++i) {
-	  if (imglist[i].name == selecting) {
-	      selected->name = selecting;
-	      memcpy(selected->digest,imglist[i].digest,16);
-	      selected->size = imglist[i].size;
-	      break;
-	  }
-      }
-  }
-}
-
-
-
-
-bool sendRequest(PantherSW::ConfigParser &parser,int from, int to, const image_t* selected)
+bool sendRequest(ConfParser::ConfigParser &parser,int from, int to, const ImageInfo& info)
 {
     int sock = socket(AF_INET,SOCK_STREAM,0);
     if (sock == -1 ) return false;
-    char buffer[4096];
-    int res;
-    int count;
-    int sent = 0;
     struct sockaddr_in addr;
     addr.sin_family=AF_INET;
     addr.sin_port=htons( atoi(parser.getValue("server-req-port").c_str()) );
     addr.sin_addr.s_addr=inet_addr(parser.getValue("server-ip").c_str());
-    
-    count = selected->name.size();
-    memcpy(buffer,selected->name.c_str(),count);
-    buffer[count] = ' '; ++ count;
-    
-    memcpy(buffer+count,&from,sizeof(from));
-    count += sizeof(from);
-
-    memcpy(buffer+count,&to,sizeof(to));
-    count += sizeof(to);
-    buffer[count] = '\n'; ++ count;
-    if (debug)  { 
-	printf("sendrequest - count %d\n",count);
-	write(1,buffer,count);
-    }
     if ( connect (sock,(sockaddr*)&addr,sizeof(addr)) == -1 ) return false;
-    shutdown(sock,SHUT_RD);
+    
 
-    while ( sent != count ) {
-	res = write(sock,buffer+sent,count-sent);
-	if (res < 0) return false;
-	sent += res;
+    if (debug)  cerr << "generating request" << endl;
+
+
+    RS::ClientRequest request;
+    request.setImageName(info.name);
+
+//     Helpers::Digests digest;
+//     memcpy(digest.digest, info.digest, 16);
+//     Helpers::digest2str(digest);
+//     request.setHeader("digest", digest.hexstr);
+    
+    {
+	stringstream ss;
+	string s;
+	
+	ss << from;
+	ss >> s;
+	request.setHeader("from", s);
     }
-    shutdown(sock,SHUT_WR);
+    {
+	stringstream ss;
+	string s;
+	
+	ss << to;
+	ss >> s;
+	request.setHeader("to", s);
+    }
+    string msg = request.getLines();
+    while (msg.size()) {
+	int r;
+	fd_set wr, er;
+	FD_ZERO (&wr);
+	FD_ZERO (&er);
+	FD_SET (sock, &wr);
+	r = select (sock + 1, 0, &wr, &er, NULL);
+	if (r == -1 && errno == EINTR) {
+	    continue;
+	}
+	if (r < 0) {
+	    perror ("select()");
+	    return false; // fatal error (but only in this thread)
+	}
+	if (FD_ISSET (sock, &wr)) {
+	r = write (sock, msg.c_str(), msg.size());
+	if (r < 0) {
+	    perror ("write()");
+	} else {
+	    msg.erase(0,r);
+	    }
+	}
+    }
+
+
+    RS::Parser rsparser;
+    if (debug)  cerr << "parsing response" << endl;
+	
+    
+    for(;;) {
+	int r;
+	fd_set rd, wr, er;
+	FD_ZERO (&rd);
+	FD_ZERO (&wr);
+	FD_ZERO (&er);
+	FD_SET (sock, &rd);
+	r = select (sock + 1, &rd, &wr, &er, NULL);
+	if (r == -1 && errno == EINTR) {
+	    continue;
+	}
+	if (r < 0) {
+	    perror ("select()");
+	    exit (1);
+	}
+	r = rsparser.parseHeader(sock, &rd, &er);
+	if (r <= 0 || sock == -1) break; 
+	usleep(1);
+    }
+    
+    // check wether the socket is valid
+    if (sock == -1) {
+	return false;
+    }
+    
+    RS::ClientResponse response(rsparser);
+    if (response.getStatus() != "200") {
+	cerr << "Problem with the request:" << rsparser.getLines()[1] <<endl;
+	cerr << "\t" << response.getHeader("error") << endl;
+	return false;
+    }    
+    shutdown(sock,SHUT_RDWR);
     close(sock);
+    if (debug)  cerr << "imgReq finished" << endl;
     return true;
+    
 }
 
 void inline help(const char*progname) {
-  printf("Backup-client\nUsage: %s [-h] [-f configile] [-i|-m imagename] -t target.filename\n"
-	 "\nOptions:\n"
-	 "-h\n"
-	 "  --help\t\tprints this page\n"
-	 "-f fname,\n"
-	 "   --config-file fname\tconfig file. Default is \"" VCFG "\"\n"
-	 "-i\n"
-	 "   --interactive\tInteractive. A menu is shown to select the backup image to use\n"
-	 "\t\t\tIt cannot be used with -m option\n"
-	 "-m imagename,\n"
-	 "   --image imagename\tSet the name of the backup image. If it is invalid, the program\n"
-	 "\t\t\tsilently exit. Cannot be used with -i option\n"
-	 "-t fname\n"
-	 "   --targetfile fname\ttarget file. The requested backup image is saved into this file\n",
-	 progname);
+    printf("Backup-client\nUsage: %s [-h] [-f configile] -m imagename -t target.filename\n"
+	   "\nOptions:\n"
+	   "-h\n"
+	   "  --help\t\tprints this page\n"
+	   "-f fname,\n"
+	   "   --config-file fname\tconfig file. Default is \"" VCFG "\"\n"
+	   "-m imagename,\n"
+	   "   --image imagename\tSet the name of the backup image. If it is invalid, the program\n"
+	   "\t\t\tsilently exit\n"
+	   "-t fname\n"
+	   "   --targetfile fname\ttarget file. The requested backup image is saved into this file\n",
+	   progname);
   
 }
 
-void printError(const std::string&error, const std::string& s, const int index){
+void printError(const std::string& error, const std::string& s, const int index){
     cerr << error << s << endl;
     cerr << setw(index) << "^" << endl;
 }
-bool validateConfig(const PantherSW::ConfigParser& parser)
+bool validateConfig(const ConfParser::ConfigParser& parser)
 {
     std::string s;
     int i,size,j,k;
@@ -563,3 +627,12 @@ bool validateConfig(const PantherSW::ConfigParser& parser)
     }
     return true;
 }
+
+
+
+/** EMACS **
+ * Local variables:
+ * mode: c++
+ * c-basic-offset: 4
+ * End:
+ */

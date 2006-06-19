@@ -24,7 +24,7 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <errno.h>
-#include "restorethread.hh"
+#include "requestthread.hh"
 
 #undef max
 namespace {
@@ -41,7 +41,7 @@ pthread_t startProc(threadproc_t threadProc, void * data=0);
 
 void serverThreadProc(int fd);
 void restoreThreadProc(void * fd) {
-    RestoreThread thread((int) fd);
+    RequestThread thread((int) fd);
     thread.run();
 }
 void server_thread(void*)

@@ -30,6 +30,7 @@ public:
     void set( const int& index );
     bool operator[](const int& index) const;
     void intv(int& from, int&  to) const;
+    void intv1(int& from, int&  to) const;
 };
 
 #endif

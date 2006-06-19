@@ -1,4 +1,4 @@
-/*  helpers.hh - Small functions
+/*  request.hh
 
     Copyright (C) 2006 Laszlo Attila Toth
 
@@ -16,39 +16,29 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA */
 
-#ifndef HELPERS__HH
-#define HELPERS__HH
+#ifndef REQUEST__HH
+#define REQUEST__HH
 
 #include <string>
-#include <vector>
+#include "rwlock.hh"
 
-namespace Helpers {
-    void split(const std::string& buf,std::vector<std::string>& vec);
-    void splitBy(const char delimiter, const std::string& buf,std::vector<std::string>& vec);
-    void splitByEx(const char delimiter, const std::string& buf,std::vector<std::string>& vec);
-    std::string trimEx(const std::string& s);
-    std::string trimLeft(const std::string& s);
-    
-    struct Digests {
-	char digest[16];
-	char hexstr[33];
-    };
-    
-    void digest2str(Digests& d);
-    void str2digest(Digests& d);
+typedef struct RequestInfo
+{
+    std::string name;
+    int from;
+    int to;
+    int max;
+} RequestInfo;
 
-    template <class T>
-    T max(T a, T b) {
-	return a > b ? a : b;
-    }
 
-    template <class T>
-    T min(T a, T b) {
-	return a < b ? a : b;
-    }
-}
+#ifndef EXTERN_REQUEST
+extern RWLock::LockProtected< std::vector<RequestInfo> > requests;
+#else
+RWLock::LockProtected< std::vector<RequestInfo> > requests;
+#endif
 
 #endif
+
 
 /** EMACS **
  * Local variables:

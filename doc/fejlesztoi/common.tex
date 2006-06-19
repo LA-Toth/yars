@@ -1,0 +1,128 @@
+%
+% - ---- -- PACKAGES--------------------------
+%
+
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage[utf8]{inputenc}
+\usepackage[magyar]{babel}
+%\usepackage{amsthm}
+\usepackage{t1enc}
+\usepackage{theorem}
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+\usepackage{paralist}
+
+%
+% ---------- CODES --------------------------
+%
+\makeatletter
+\gdef\th@magyar{\normalfont\slshape
+  \def\@begintheorem##1##2{%
+  \item[\hskip\labelsep \theorem@headerfont ##2.\ ##1.]}%
+  \def\@opargbegintheorem##1##2##3{%
+  \item[\hskip\labelsep \theorem@headerfont ##2. ##1.\ (##3)]}}
+\makeatother
+
+
+%
+% ------------  N E W  C O M M A N D S --------
+%
+%\newcommand{\ob}{\begin{flushright} \leavevmode\hbox to.77778em{\hfil\vrule
+%    \vbox to.675em{\hrule width.6em\vfil\hrule}\vrule}\hfil\end{flushright}}
+\newcommand{\ob}{\hfill$\square$}
+\newcommand{\ff}{f\in\mathbb{R}\rightarrow\mathbb{R}}
+\newcommand{\fab}{f\colon (a,b)\rightarrow\mathbb{R}}
+\newcommand{\fabk}{f\colon \left[a,b\right]\rightarrow\mathbb{R}}
+\newcommand{\fir}{f\colon I\rightarrow\mathbb{R}}
+\newcommand{\fdab}{f\in D(a,b)}
+\newcommand{\fcab}{f\in C[a,b]}
+\newcommand{\exist}{\exists}
+\newcommand{\ek}{\Longleftrightarrow}
+\newcommand{\la}{\lambda}
+\newcommand{\ro}{\varrho}
+\newcommand{\K}{\ensuremath{\mathbb{K}}}
+\newcommand{\R}{\ensuremath{\mathbb{R}}}
+\newcommand{\Q}{\ensuremath{\mathbb{Q}}}
+\newcommand{\N}{\ensuremath{\mathbb{N}}}
+\newcommand{\C}{\ensuremath{\mathbb{C}}}
+\newcommand{\n}{\ensuremath{\to}} %azonos a rightarrow-val
+%duplanyil, szuksegesseg
+\newcommand{\nn}{\ensuremath{\Rightarrow}}
+%\newcommand{\Omage}{\Omega}
+%elegségesség, nem def :)
+%\newcommand{\nb}{\Leftarrow}
+\newcommand{\di}{\displaystyle}
+\newcommand{\sarrow}{\downarrow}
+\newcommand{\narrow}{\uparrow}
+\newcommand{\lt}{<}
+\newcommand{\gt}{>}
+\newcommand{\Int}{\intop\limits}
+\newcommand{\ures}{\varnothing}
+\newcommand{\ekv}{\iff}
+\newcommand{\ekviv}{\ekv}
+\renewcommand{\epsilon}{\varepsilon}
+\newcommand{\eps}{\varepsilon}
+%
+% ------------  NEW PART DEFS -----------------
+%
+\newcounter{Szaml}
+
+
+\theoremstyle{magyar}
+\theoremheaderfont{\itshape\bfseries}
+\newtheorem{de}{definíció}[section]
+\newtheorem{te}{tétel}[section]
+\newtheorem{bi}{bizonyítás}[section]
+\newtheorem{ko}{következmény}[section]
+\newtheorem{me}{megjegyzés}[section]
+\newtheorem{al}{állítás}[section]
+
+
+\newenvironment{korlista}{\begin{enumerate}[\quad1$^\circ$]}{\end{enumerate}}
+
+\newenvironment{biz}{\begin{trivlist}\item\relax\mbox{\textbf{Bizonyítás.\enskip}}\ignorespaces}{\ob\end{trivlist}}
+\newenvironment{Biz}{\begin{trivlist}\item\relax\mbox{\textbf{Bizonyítás.\enskip}}\ignorespaces\begin{korlista}}{\ob\end{korlista}\end{trivlist}}
+\newenvironment{kov}{\begin{trivlist}\item\relax\mbox{\textbf{Következmény.\enskip}}\ignorespaces}{\end{trivlist}}
+\newenvironment{megj}{\begin{trivlist}\item\relax\mbox{\textbf{Megjegyzés.\enskip}}\ignorespaces}{\end{trivlist}}
+\newenvironment{Megj}{\begin{megj}\begin{korlista}}{\end{korlista}\end{megj}}
+\newenvironment{pl}{\begin{trivlist}\item\relax\mbox{\textbf{Példa.\enskip}}\ignorespaces}{\end{trivlist}}
+\newenvironment{Pl}{\begin{pl}\begin{korlista}}{\end{korlista}\end{pl}}
+\DeclareMathOperator{\D}{D}
+\newenvironment{bizlist}{\setcounter{Szaml}{1}
+    \begin{list}{\alph{Szaml})\hfill}
+    {\usecounter{Szaml}\setlength{\itemsep}{0pt}
+    \setlength{\itemindent}{-\labelsep}
+    \setlength{\listparindent}{0pt}}}{\end{list}}
+
+
+
+
+%
+% - - - -- - - S E T T I N G S ----------------
+%
+%\setlength{\parindent}{0pt}
+%\setlength{\parskip}{\baselineskip}
+\addtolength{\voffset}{-1cm}
+\addtolength{\textheight}{2cm}
+%\addtolength{\marginparwidth}{-1cm}
+\addtolength{\hoffset}{-1cm}
+\addtolength{\textwidth}{2cm}
+\setlength{\headheight}{23pt}
+%
+\pagestyle{fancy}
+
+  \renewcommand{\sectionmark}[1]{\markboth{\Roman{section}. tétel\\#1}{}}
+
+\newcommand{\mktoc}{
+  \pagenumbering{roman}
+  \setcounter{page}{1}
+  \lhead{\textbf{\thepage}}
+  \cfoot{}
+  \tableofcontents
+  \newpage
+  \lhead{\textbf{\thepage}}%/\pageref{LastPage}}
+  \pagenumbering{arabic}
+  \setcounter{page}{1}
+}
+

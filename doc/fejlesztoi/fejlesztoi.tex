@@ -1,0 +1,103 @@
+\documentclass[fleqn,10pt,a4paper,titlepage]{article}
+\includeonly{common,komplexfv}
+
+\include{common}
+\usepackage{booktabs}
+
+
+\renewcommand{\sectionmark}[1]{\markboth{\Roman{section}. #1}{}}
+
+\newcommand{\listazjbetu}{
+  \renewcommand{\theenumi}{\alph{enumi}}
+  \renewcommand{\labelenumi}{(\theenumi)}
+}
+\newcommand{\listazjromai}{
+  \renewcommand{\theenumi}{\alph{enumi}}
+  \renewcommand{\labelenumi}{(\theenumi)}
+}
+\newcommand{\listabetu}{
+  \renewcommand{\theenumi}{\alph{enumi}}
+  \renewcommand{\labelenumi}{\theenumi}
+}
+\newcommand{\listaszamkor}{
+  \renewcommand{\theenumi}{\alph{enumi}}
+  \renewcommand{\labelenumi}{\theenumi$^\circ$}
+}
+\newenvironment{enumzjromai}{\listazjromai\begin{enumerate}}{\end{enumerate}}
+\newenvironment{enumzjbetu}{\listazjbetu\begin{enumerate}}{\end{enumerate}}
+
+\newenvironment{enumzjr}{\begin{enumzjromai}}{\end{enumzjromai}}
+\newenvironment{enumzjb}{\begin{enumzjbetu}}{\end{enumzjbetu}}
+
+
+\DeclareRobustCommand{\tmspace}[3]{%
+  \ifmmode\mskip#1#2\else\kern#1#3\fi\relax}
+\providecommand*{\negmedspace}{\tmspace-\medmuskip{.2222em}}
+
+\title{Visszázórendszer felhasználói dokumentáció)}
+\author{Tóth László Attila (panther@elte.hu)}
+\date{}
+\begin{document}
+  \maketitle
+  \mktoc
+
+  \begin{abstract}
+    A visszázórendszer egy linuxra írt program, amely néhány fájlt küld át a hálózaton, broadcast UDP csomagokkal. A
+    kliens ezt egy fájba menti, mely akár lehet egy speciális eszközfájl is, ezáltal egy merevlemez vagy partíció
+    közvetlenül visszatölthető. Ugyanakkor nem feltétlenül az egészet fájlt, mivel mind a szerver, mind a kliens
+    ellenőrző összegeket számol, csak az eltérő részek utaznak a hálózaton. A 4GiB-nál nagyobb fájlokat is kezeli a
+    rendszer.
+    
+    Akkor igazán hatékony, ha sok kliens fut egyszerre, így egyszerre több számítógépen lehet a visszatöltést elvégezni.
+  \end{abstract}
+
+  \section{A rendszer alapgondolata}
+  Sokszor szükséges az, hogy egy-egy csupasz gépre vissza kell tölteni egy-egy nagy fájlt, egészen pontosan egy vagy
+  több partíciót. Erre vannak megfelelő programok, azonban mindegyik kicsit másképp működik. Linuxon a leghasználhatóbb
+  talán az \texttt{rsync} program, ez nagyon jó akkor, amikor csak kevés kliens van és a partíción található fájlokat
+  kell lementeni. TCP-t használ, ezáltal ugyanannyiszor megy át a hálózaton az adat, ahány kliens csatlakozott a
+  szerverhez.
+  Ez a visszázórendszer többek között ezt kerüli ki: a broadcast udp használata miatt optimális esetben egy-egy csomag
+  csak egyszer megy át a hálózaton. Ha a hálózaton csomagvesztés történik, akkor sincs gond, mehet tovább a rendszer,
+  idővel úgyis újra el lesz küldve az elveszett csomag. Ugyanakkor nem szükséges a teljes fájl átküldéese, ha a nagy
+  része megegyezik, ahogy az \texttt{rsync} esetén sem kell a nem módosult fájlokat újra letölteni.
+  
+  \section{A program fordítása, indítása}
+  A program gcc 4.0.3-as fordítóval tesztelt, régebbivel is le kell fordulnia (pl. 3.4.x). A forrás az \texttt{src}
+  könyvtárban található, oda belépve egy \texttt{make} parancsot kell beírni a parancssorba. A program többszálú, ezért
+  a \texttt{pthread} függvényeket használja.
+
+  Az indításról szóló rész, opciókkal, mindennel megtalálható a felhasználói leírásban.
+
+  \section{A kód (áttekintés)}
+  A program kódja alapvetően három részre tagolt, a \textt{src} könyvtáron belül található \texttt{client},
+  \texttt{common}, \texttt{server} könyvtáraknak megfelelően. Ezekben a kliens által, közösen illetve a szerver által
+  használt állományok találhatóak.
+
+  \subsection{A közösen használtak}
+  Itt is több részre tagolt, a \texttt{types} alatt a fájlinformációkkal és az UDP csomagok kezelésével
+  kapcsolatos típusok vannak. A \texttt{rs} könyvtárban a szerver és a kliens kommunikációjához használt típusok
+  szerepelnek, külön névtérben: \texttt{rs}. A használt protokoll lényegében megegyezik a \texttt{HTTP/1.0}-val, csak
+  itt \textt{RS} a neve a visszatöltő rendszer angol elnevezése alapján. Végül vannak olyan típusok, állományok, melyek
+  nincsenek alkönyvtárba szervezve. Ilyenek például a konfigurációs beállításokat tartalmazó, ellenőrző összeget számító
+  állományok (függvényeket tartalmaznak).
+  
+  \subsection{A kliens fájljai}
+  A kliens viszonylag egyszerű, ezért egyetlen állományból áll: \texttt{main.cpp}, valamint a használt típusok
+  implementációs állományaiból (cpp fájlok).
+
+  \subsection{A szerver fájljai}
+  A szerver többszálú, sokkal bonyolultabb, mint a kliens, így minden szál külön fájlba került. A legtöbb esetben amit a
+  főprogram indít, az egy-egy függvényből áll, a kéréseket fogadó szál viszont már külön típust használ, amikor fogadta
+  a kérést (hogy melyik image rész szükséges).
+  
+  
+  
+  
+
+\end{document}
+
+% Local Variables:
+% fill-column: 120
+% TeX-master: t
+% End:

@@ -20,7 +20,6 @@
 #include "rs/rsclientresponse.hh"
 #include "helpers.hh"
 
-
 RS::ClientResponse::ClientResponse(const RS::Parser& parser) :  error(-1)
 {
     parseHeader(parser.getLines());
@@ -33,7 +32,7 @@ void RS::ClientResponse::parseHeader(const RS::Parser::strList& lines)
 {
     using namespace Helpers;
     
-    if (lines.size() < 2) { // min 2 lines required!!!
+    if (lines.size() < 1) { // min 1 line is required!!!
 	error = 2;
 	return;
     }
